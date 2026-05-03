@@ -321,8 +321,8 @@ func (m Model) renderHelp() string {
 }
 
 // renderConfirmDialog renders a centered confirmation modal with styled buttons
-func renderConfirmDialog(width, height int, title, body, yesLabel, noLabel string) string {
-	modalWidth := 42
+func renderConfirmDialog(width, height int, title, body, yesLabel, noLabel, cancelLabel string) string {
+	modalWidth := 54
 
 	bg := lipgloss.NewStyle().Background(styles.SlateDark)
 
@@ -345,7 +345,7 @@ func renderConfirmDialog(width, height int, title, body, yesLabel, noLabel strin
 		Bold(true).
 		Render(yesLabel)
 
-	btnGap := bg.Render("   ")
+	btnGap := bg.Render("  ")
 
 	noBtn := lipgloss.NewStyle().
 		Foreground(styles.LightGray).
@@ -353,11 +353,24 @@ func renderConfirmDialog(width, height int, title, body, yesLabel, noLabel strin
 		Padding(0, 2).
 		Render(noLabel)
 
+	buttonList := []string{yesBtn, btnGap, noBtn}
+
+	if cancelLabel != "" {
+		cancelBtn := lipgloss.NewStyle().
+			Foreground(styles.DimGray).
+			Background(styles.SlateLight).
+			Padding(0, 2).
+			Render(cancelLabel)
+		buttonList = append(buttonList, btnGap, cancelBtn)
+	}
+
+	buttons := lipgloss.JoinHorizontal(lipgloss.Top, buttonList...)
+
 	buttonRow := bg.
 		Width(modalWidth).
 		Align(lipgloss.Center).
 		MarginTop(1).
-		Render(yesBtn + btnGap + noBtn)
+		Render(buttons)
 
 	content := lipgloss.JoinVertical(lipgloss.Left,
 		titleStyle.Render(title),
@@ -386,7 +399,7 @@ func (m Model) renderResumeConfirmation() string {
 
 	return renderConfirmDialog(m.Width, m.Height,
 		title, body,
-		"Y  Resume", "N  Start Over")
+		"Y  Resume", "N  Start Over", "Esc  Cancel")
 }
 
 // renderLogoutConfirmation renders the logout confirmation modal
@@ -394,5 +407,5 @@ func (m Model) renderLogoutConfirmation() string {
 	return renderConfirmDialog(m.Width, m.Height,
 		"Log Out?",
 		"This will clear your credentials,\nserver URL, and all cached data.",
-		"Y  Yes", "N  No")
+		"Y  Yes", "N  No", "")
 }

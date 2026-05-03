@@ -171,8 +171,8 @@ func DefaultKeyMap() KeyMap {
 			key.WithHelp("y", "confirm"),
 		),
 		Deny: key.NewBinding(
-			key.WithKeys("n", "N", "esc"),
-			key.WithHelp("n/esc", "cancel"),
+			key.WithKeys("n", "N"),
+			key.WithHelp("n", "deny"),
 		),
 	}
 }
