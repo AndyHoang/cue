@@ -362,10 +362,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case PlaybackStartedMsg:
 		m.StatusMsg = "Playing: " + msg.Item.Title
-		if msg.ResultCh != nil {
-			return m, WaitForPlaybackCmd(msg.ResultCh)
-		}
-		return m, nil
+		return m, tea.Batch(
+			WaitForPlaybackCmd(msg.Handle.ResultCh),
+			ListenForPlaybackStatusCmd(msg.Handle.StatusCh),
+		)
+
+	case PlaybackStatusMsg:
+		m.StatusMsg = msg.Message
+		// Keep listening for more status updates
+		return m, ListenForPlaybackStatusCmd(msg.StatusCh)
 
 	case PlaybackFinishedMsg:
 		if msg.Err != nil {

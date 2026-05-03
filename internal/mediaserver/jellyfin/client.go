@@ -448,6 +448,7 @@ func (c *Client) MarkUnplayed(ctx context.Context, itemID string) error {
 
 // UpdateProgress reports the current playback position to the server
 func (c *Client) UpdateProgress(ctx context.Context, itemID string, positionMs int64) error {
+	c.logger.Info("saving timestamp to jellyfin", "itemID", itemID, "positionMs", positionMs)
 	payload := map[string]interface{}{
 		"ItemId":        itemID,
 		"PositionTicks": positionMs * 10000, // ms -> Jellyfin ticks (100ns units)

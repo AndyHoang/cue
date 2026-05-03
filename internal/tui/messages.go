@@ -60,8 +60,14 @@ type EpisodesLoadedMsg struct {
 
 // PlaybackStartedMsg signals that playback has started (player launched)
 type PlaybackStartedMsg struct {
-	Item     domain.MediaItem
-	ResultCh <-chan player.ScrobbleResult
+	Item   domain.MediaItem
+	Handle player.PlaybackHandle
+}
+
+// PlaybackStatusMsg signals a real-time status update during playback
+type PlaybackStatusMsg struct {
+	Message  string
+	StatusCh <-chan string
 }
 
 // PlaybackFinishedMsg signals that playback has ended

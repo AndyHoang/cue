@@ -364,6 +364,7 @@ func (c *Client) MarkUnplayed(ctx context.Context, itemID string) error {
 
 // UpdateProgress reports the current playback position to the server
 func (c *Client) UpdateProgress(ctx context.Context, itemID string, positionMs int64) error {
+	c.logger.Info("saving timestamp to plex", "itemID", itemID, "positionMs", positionMs)
 	query := url.Values{}
 	query.Set("key", itemID)
 	query.Set("identifier", "com.plexapp.plugins.library")

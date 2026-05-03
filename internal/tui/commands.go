@@ -110,29 +110,46 @@ func PlayItemCmd(svc *player.Service, item domain.MediaItem, resume bool) tea.Cm
 	return func() tea.Msg {
 		ctx := context.Background()
 
-		var resultCh <-chan player.ScrobbleResult
+		var handle player.PlaybackHandle
 		var err error
 		if resume {
-			resultCh, err = svc.Resume(ctx, item)
+			handle, err = svc.Resume(ctx, item)
 		} else {
-			resultCh, err = svc.Play(ctx, item)
+			handle, err = svc.Play(ctx, item)
 		}
 
 		if err != nil {
 			return ErrMsg{Err: err, Context: "starting playback"}
 		}
-		return PlaybackStartedMsg{Item: item, ResultCh: resultCh}
+		return PlaybackStartedMsg{Item: item, Handle: handle}
 	}
 }
 
 // WaitForPlaybackCmd waits for the playback to finish and returns a message
 func WaitForPlaybackCmd(resultCh <-chan player.ScrobbleResult) tea.Cmd {
 	return func() tea.Msg {
-		result := <-resultCh
+		result, ok := <-resultCh
+		if !ok {
+			return nil
+		}
 		return PlaybackFinishedMsg{
 			Title:      result.Title,
 			AutoMarked: result.AutoMarked,
 			Err:        result.Err,
+		}
+	}
+}
+
+// ListenForPlaybackStatusCmd waits for status updates during playback
+func ListenForPlaybackStatusCmd(statusCh <-chan string) tea.Cmd {
+	return func() tea.Msg {
+		msg, ok := <-statusCh
+		if !ok {
+			return nil
+		}
+		return PlaybackStatusMsg{
+			Message:  msg,
+			StatusCh: statusCh,
 		}
 	}
 }
