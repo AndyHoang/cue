@@ -1,6 +1,7 @@
 package search
 
 import (
+	"context"
 	"strings"
 
 	"github.com/SuperCoolPencil/cue/internal/domain"
@@ -23,7 +24,8 @@ type FilterResult struct {
 
 // Service handles fuzzy search across libraries
 type Service struct {
-	store domain.Store
+	store  domain.Store
+	remote domain.SearchClient
 }
 
 // NewService creates a new search service
@@ -31,6 +33,37 @@ func NewService(store domain.Store) *Service {
 	return &Service{
 		store: store,
 	}
+}
+
+// SetRemote enables server-side search fallback.
+func (s *Service) SetRemote(remote domain.SearchClient) {
+	s.remote = remote
+}
+
+// SearchRemote runs a server-side search when a backend is available.
+func (s *Service) SearchRemote(ctx context.Context, query string) ([]FilterResult, error) {
+	if s.remote == nil || strings.TrimSpace(query) == "" {
+		return nil, nil
+	}
+	items, err := s.remote.Search(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	results := make([]FilterResult, 0, len(items))
+	for _, item := range items {
+		if item == nil {
+			continue
+		}
+		results = append(results, FilterResult{
+			FilterItem: FilterItem{
+				Item:      item,
+				Title:     item.Title,
+				Type:      item.Type,
+				LibraryID: item.LibraryID,
+			},
+		})
+	}
+	return results, nil
 }
 
 // FilterLocal searches cached data directly

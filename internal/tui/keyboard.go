@@ -3,6 +3,7 @@ package tui
 import (
 	"time"
 
+	"github.com/SuperCoolPencil/cue/internal/domain"
 	"github.com/SuperCoolPencil/cue/internal/tui/components"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -27,6 +28,27 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, LogoutCmd()
 		case key.Matches(msg, Keys.Deny):
 			// User cancelled
+			m.State = StateBrowsing
+		}
+		return m, nil
+	case StateConfirmResume:
+		if m.pendingPlayback == nil {
+			m.State = StateBrowsing
+			return m, nil
+		}
+		switch {
+		case key.Matches(msg, Keys.Confirm):
+			item := *m.pendingPlayback
+			m.pendingPlayback = nil
+			m.State = StateBrowsing
+			return m, PlayItemCmd(m.PlaybackSvc, item, true)
+		case key.Matches(msg, Keys.Deny):
+			item := *m.pendingPlayback
+			m.pendingPlayback = nil
+			m.State = StateBrowsing
+			return m, PlayItemCmd(m.PlaybackSvc, item, false)
+		case key.Matches(msg, Keys.Escape):
+			m.pendingPlayback = nil
 			m.State = StateBrowsing
 		}
 		return m, nil
@@ -77,6 +99,10 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleDelete()
 	case key.Matches(msg, Keys.NewPlaylist):
 		return m.handleNewPlaylist()
+	case key.Matches(msg, Keys.Queue):
+		return m.handleQueue()
+	case key.Matches(msg, Keys.NextEpisode):
+		return m.handleNextEpisode()
 	}
 
 	// Let the focused column handle remaining keys (j/k/g/G navigation)
@@ -164,7 +190,7 @@ func (m Model) handleDrillIn() (tea.Model, tea.Cmd) {
 	}
 	if !top.CanDrillInto() {
 		if item := top.SelectedMediaItem(); item != nil {
-			return m, PlayItemCmd(m.PlaybackSvc, *item, item.ShouldResume())
+			return m.playOrConfirmResume(item)
 		}
 		return m, nil
 	}
@@ -181,7 +207,7 @@ func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 		return m.drillIntoSelection()
 	}
 	if item := top.SelectedMediaItem(); item != nil {
-		return m, PlayItemCmd(m.PlaybackSvc, *item, item.ShouldResume())
+		return m.playOrConfirmResume(item)
 	}
 	return m, nil
 }
@@ -225,7 +251,7 @@ func (m Model) handleRefresh() (tea.Model, tea.Cmd) {
 	case components.ColumnTypeLibraries:
 		// Refresh selected library
 		lib := top.SelectedLibrary()
-		if lib == nil || lib.ID == playlistsLibraryID {
+		if lib == nil || lib.ID == playlistsLibraryID || lib.Type == "cue" || lib.Type == "filter" || lib.Type == "profile" || lib.Type == "config" || lib.Type == "cache" {
 			return m, nil
 		}
 		m.LibraryStates[lib.ID] = components.LibrarySyncState{Status: components.StatusSyncing}
@@ -361,6 +387,18 @@ func (m Model) handlePlay() (tea.Model, tea.Cmd) {
 	return m, PlayItemCmd(m.PlaybackSvc, *item, false)
 }
 
+func (m Model) playOrConfirmResume(item *domain.MediaItem) (tea.Model, tea.Cmd) {
+	if item == nil {
+		return m, nil
+	}
+	if item.ShouldResume() {
+		m.pendingPlayback = item
+		m.State = StateConfirmResume
+		return m, nil
+	}
+	return m, PlayItemCmd(m.PlaybackSvc, *item, false)
+}
+
 // handleToggleInspector toggles the inspector panel visibility
 func (m Model) handleToggleInspector() (tea.Model, tea.Cmd) {
 	m.ShowInspector = !m.ShowInspector
@@ -404,6 +442,12 @@ func (m Model) handleDelete() (tea.Model, tea.Cmd) {
 		if playlist != nil {
 			return m, DeletePlaylistCmd(m.PlaylistService, playlist.ID)
 		}
+	default:
+		if top.ContentID() == queueLibraryID {
+			if item := top.SelectedMediaItem(); item != nil {
+				return m, RemoveFromQueueCmd(m.PlaylistService, item.ID)
+			}
+		}
 	}
 	return m, nil
 }
@@ -416,6 +460,41 @@ func (m Model) handleNewPlaylist() (tea.Model, tea.Cmd) {
 		return m, ClearStatusCmd(3 * time.Second)
 	}
 	return m, nil
+}
+
+func (m Model) handleQueue() (tea.Model, tea.Cmd) {
+	top := m.ColumnStack.Top()
+	if top == nil {
+		return m, nil
+	}
+	if top.ContentID() == queueLibraryID {
+		if item := top.SelectedMediaItem(); item != nil {
+			return m, RemoveFromQueueCmd(m.PlaylistService, item.ID)
+		}
+		return m, nil
+	}
+	item := top.SelectedMediaItem()
+	if item == nil {
+		return m, nil
+	}
+	return m, AddToQueueCmd(m.PlaylistService, item)
+}
+
+func (m Model) handleNextEpisode() (tea.Model, tea.Cmd) {
+	top := m.ColumnStack.Top()
+	if top == nil || top.ColumnType() != components.ColumnTypeEpisodes {
+		m.StatusMsg = "Open a season to quick-play next unwatched episode"
+		return m, ClearStatusCmd(3 * time.Second)
+	}
+	count := top.ItemCount()
+	for i := top.SelectedIndex(); i < count; i++ {
+		top.SetSelectedIndex(i)
+		if item := top.SelectedMediaItem(); item != nil && !item.IsPlayed {
+			return m.playOrConfirmResume(item)
+		}
+	}
+	m.StatusMsg = "No unwatched episode in this season"
+	return m, ClearStatusCmd(3 * time.Second)
 }
 
 // ----------------------------------------------------------------------------
@@ -437,6 +516,9 @@ func (m Model) handleGlobalSearchInput(msg tea.KeyMsg) (Model, tea.Cmd) {
 		query := m.GlobalSearch.Query()
 		results := m.SearchSvc.FilterLocal(query, m.Libraries)
 		m.GlobalSearch.SetResults(results)
+		if len(results) == 0 && len(query) >= 2 {
+			cmds = append(cmds, RemoteSearchCmd(m.SearchSvc, query))
+		}
 	}
 
 	if selected {

@@ -19,10 +19,12 @@ const (
 
 // Config holds all application configuration
 type Config struct {
-	Server  ServerConfig  `mapstructure:"server"`
-	Player  PlayerConfig  `mapstructure:"player"`
-	UI      UIConfig      `mapstructure:"ui"`
-	Logging LoggingConfig `mapstructure:"logging"`
+	Server         ServerConfig             `mapstructure:"server"`
+	Player         PlayerConfig             `mapstructure:"player"`
+	UI             UIConfig                 `mapstructure:"ui"`
+	Logging        LoggingConfig            `mapstructure:"logging"`
+	CurrentProfile string                   `mapstructure:"current_profile"`
+	Profiles       map[string]ProfileConfig `mapstructure:"profiles"`
 }
 
 // ServerConfig holds media server configuration
@@ -56,6 +58,8 @@ type LoggingConfig struct {
 // DefaultConfig returns the default configuration
 func DefaultConfig() *Config {
 	return &Config{
+		CurrentProfile: "default",
+		Profiles:       make(map[string]ProfileConfig),
 		UI: UIConfig{
 			ShowWatchStatus:   true,
 			ShowLibraryCounts: false,
@@ -113,6 +117,7 @@ func LoadConfig() (*Config, error) {
 	if err := viper.Unmarshal(cfg); err != nil {
 		return nil, fmt.Errorf("error parsing config: %w", err)
 	}
+	cfg.applyCurrentProfile()
 
 	return cfg, nil
 }
@@ -146,12 +151,41 @@ func SaveConfig(cfg *Config) error {
 	viper.Set("logging.file", cfg.Logging.File)
 	viper.Set("logging.level", cfg.Logging.Level)
 
+	cfg.rememberCurrentProfile()
+	viper.Set("current_profile", cfg.CurrentProfile)
+	viper.Set("profiles", cfg.Profiles)
+
 	configFile := filepath.Join(configPath, "config.yaml")
 	if err := viper.WriteConfigAs(configFile); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
 	return nil
+}
+
+func (c *Config) applyCurrentProfile() {
+	if c.Profiles == nil {
+		c.Profiles = make(map[string]ProfileConfig)
+	}
+	if c.CurrentProfile == "" {
+		c.CurrentProfile = "default"
+	}
+	profile, ok := c.Profiles[c.CurrentProfile]
+	if ok && profile.Server.URL != "" {
+		c.Server = profile.Server
+	}
+}
+
+func (c *Config) rememberCurrentProfile() {
+	if c.Profiles == nil {
+		c.Profiles = make(map[string]ProfileConfig)
+	}
+	if c.CurrentProfile == "" {
+		c.CurrentProfile = "default"
+	}
+	if c.Server.URL != "" || c.Server.Token != "" {
+		c.Profiles[c.CurrentProfile] = ProfileConfig{Server: c.Server}
+	}
 }
 
 // IsConfigured returns true if the server URL and token are set

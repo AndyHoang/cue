@@ -22,6 +22,7 @@ const (
 	StateBrowsing ApplicationState = iota
 	StateHelp
 	StateConfirmLogout
+	StateConfirmResume
 )
 
 // Layout proportions for Miller Columns
@@ -47,6 +48,13 @@ const (
 
 	// Synthetic library entry for playlists
 	playlistsLibraryID = "__playlists__"
+	continueLibraryID  = "__continue_watching__"
+	recentLibraryID    = "__recently_added__"
+	queueLibraryID     = "__queue__"
+	filtersLibraryID   = "__smart_filters__"
+	profilesLibraryID  = "__profiles__"
+	configLibraryID    = "__config__"
+	cacheLibraryID     = "__cache__"
 )
 
 // playlistsLibraryEntry returns the synthetic library entry for playlists
@@ -58,9 +66,23 @@ func playlistsLibraryEntry() domain.Library {
 	}
 }
 
+func virtualLibraryEntries() []domain.Library {
+	return []domain.Library{
+		{ID: continueLibraryID, Name: "Continue Watching", Type: "cue"},
+		{ID: recentLibraryID, Name: "Recently Added", Type: "cue"},
+		{ID: queueLibraryID, Name: "Watch Queue", Type: "cue"},
+		{ID: filtersLibraryID, Name: "Smart Filters", Type: "cue"},
+		{ID: profilesLibraryID, Name: "Profiles", Type: "cue"},
+		{ID: configLibraryID, Name: "Config", Type: "cue"},
+		{ID: cacheLibraryID, Name: "Cache", Type: "cue"},
+	}
+}
+
 // allLibraryEntries returns libraries plus the synthetic Playlists entry
 func (m *Model) allLibraryEntries() []domain.Library {
-	return append(m.Libraries, playlistsLibraryEntry())
+	entries := append([]domain.Library{}, virtualLibraryEntries()...)
+	entries = append(entries, m.Libraries...)
+	return append(entries, playlistsLibraryEntry())
 }
 
 // Model is the main Bubble Tea model for the application
@@ -118,7 +140,10 @@ type Model struct {
 	currentShowID string // Set when entering a show
 
 	// UI preferences from config
-	UIConfig config.UIConfig
+	UIConfig  config.UIConfig
+	AppConfig *config.Config
+
+	pendingPlayback *domain.MediaItem
 }
 
 // NewModel creates a new application model
@@ -128,6 +153,7 @@ func NewModel(
 	playlistSvc *playlist.Service,
 	searchSvc *search.Service,
 	playbackSvc *player.Service,
+	appConfig *config.Config,
 	uiConfig config.UIConfig,
 ) Model {
 	return Model{
@@ -145,6 +171,7 @@ func NewModel(
 		LibraryStates:   make(map[string]components.LibrarySyncState),
 		ShowInspector:   false, // Inspector hidden by default - show 3 nav columns
 		UIConfig:        uiConfig,
+		AppConfig:       appConfig,
 	}
 }
 
@@ -463,6 +490,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.PlaylistModal.Show(msg.Playlists, msg.Membership, msg.Item)
 		m.PlaylistModal.SetSize(m.Width, m.Height)
 		return m, nil
+
+	case RemoteSearchLoadedMsg:
+		if msg.Error != nil {
+			m.StatusMsg = fmt.Sprintf("Remote search failed: %v", msg.Error)
+			m.StatusIsErr = true
+			return m, ClearStatusCmd(4 * time.Second)
+		}
+		if m.GlobalSearch.IsVisible() && msg.Query == m.GlobalSearch.Query() && len(msg.Results) > 0 {
+			m.GlobalSearch.SetResults(msg.Results)
+		}
+		return m, nil
+
+	case QueueUpdatedMsg:
+		if msg.Error != nil {
+			m.StatusMsg = fmt.Sprintf("Queue update failed: %v", msg.Error)
+			m.StatusIsErr = true
+		} else {
+			m.StatusMsg = msg.Message
+		}
+		if top := m.ColumnStack.Top(); top != nil && top.ContentID() == queueLibraryID {
+			top.SetItems(m.PlaylistService.QueueItems())
+		}
+		return m, ClearStatusCmd(3 * time.Second)
 
 	case PlaylistUpdatedMsg:
 		if msg.Error != nil {

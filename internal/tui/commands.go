@@ -11,6 +11,7 @@ import (
 	"github.com/SuperCoolPencil/cue/internal/library"
 	"github.com/SuperCoolPencil/cue/internal/player"
 	"github.com/SuperCoolPencil/cue/internal/playlist"
+	"github.com/SuperCoolPencil/cue/internal/search"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -433,5 +434,36 @@ func LoadPlaylistModalDataCmd(svc *playlist.Service, item *domain.MediaItem) tea
 			Membership: membership,
 			Item:       item,
 		}
+	}
+}
+
+func RemoteSearchCmd(svc *search.Service, query string) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		results, err := svc.SearchRemote(ctx, query)
+		return RemoteSearchLoadedMsg{Query: query, Results: results, Error: err}
+	}
+}
+
+func AddToQueueCmd(svc *playlist.Service, item *domain.MediaItem) tea.Cmd {
+	return func() tea.Msg {
+		if err := svc.AddToQueue(item); err != nil {
+			return QueueUpdatedMsg{Error: err}
+		}
+		if item == nil {
+			return QueueUpdatedMsg{Message: "Queue unchanged"}
+		}
+		return QueueUpdatedMsg{Message: "Queued: " + item.Title}
+	}
+}
+
+func RemoveFromQueueCmd(svc *playlist.Service, itemID string) tea.Cmd {
+	return func() tea.Msg {
+		if err := svc.RemoveFromQueue(itemID); err != nil {
+			return QueueUpdatedMsg{Error: err}
+		}
+		return QueueUpdatedMsg{Message: "Removed from queue"}
 	}
 }

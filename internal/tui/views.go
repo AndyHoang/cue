@@ -29,6 +29,9 @@ func (m Model) View() string {
 	if m.State == StateConfirmLogout {
 		return m.renderLogoutConfirmation()
 	}
+	if m.State == StateConfirmResume {
+		return m.renderResumeConfirmation()
+	}
 
 	contentHeight := m.Height - ChromeHeight
 	stackLen := m.ColumnStack.Len()
@@ -212,6 +215,7 @@ SEARCH & VIEW                   OTHER
   s          Sort                  q      Quit
   i          Toggle inspector      ?      This help
   Space      Manage playlists      Esc    Close / Cancel
+  a          Add/remove queue      N      Next episode
                                    L      Logout
 
 Press any key to return...
@@ -220,6 +224,24 @@ Press any key to return...
 	return lipgloss.Place(m.Width, m.Height,
 		lipgloss.Center, lipgloss.Center,
 		styles.ModalStyle.Render(help))
+}
+
+func (m Model) renderResumeConfirmation() string {
+	title := "Selected item"
+	if m.pendingPlayback != nil {
+		title = m.pendingPlayback.Title
+	}
+	modal := fmt.Sprintf(`
+           Resume Playback?
+
+  %s
+
+  [Y] Resume      [N] Start Over
+`, title)
+
+	return lipgloss.Place(m.Width, m.Height,
+		lipgloss.Center, lipgloss.Center,
+		styles.ModalStyle.Render(modal))
 }
 
 // renderLogoutConfirmation renders the logout confirmation modal

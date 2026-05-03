@@ -34,6 +34,8 @@ type KeyMap struct {
 	PlaylistModal   key.Binding
 	Delete          key.Binding
 	NewPlaylist     key.Binding
+	Queue           key.Binding
+	NextEpisode     key.Binding
 
 	// Confirmations
 	Confirm key.Binding
@@ -153,6 +155,14 @@ func DefaultKeyMap() KeyMap {
 		NewPlaylist: key.NewBinding(
 			key.WithKeys("n"),
 			key.WithHelp("n", "new"),
+		),
+		Queue: key.NewBinding(
+			key.WithKeys("a"),
+			key.WithHelp("a", "queue"),
+		),
+		NextEpisode: key.NewBinding(
+			key.WithKeys("N"),
+			key.WithHelp("N", "next episode"),
 		),
 
 		// Confirmations

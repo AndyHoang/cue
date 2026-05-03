@@ -22,6 +22,7 @@ var (
 	bucketSeasons   = []byte("seasons")
 	bucketEpisodes  = []byte("episodes")
 	bucketPlaylists = []byte("playlists")
+	bucketQueue     = []byte("queue")
 )
 
 // listItemWrapper wraps ListItem for JSON serialization
@@ -65,7 +66,7 @@ func NewLibraryStore(baseCacheDir, serverURL string) (*LibraryStore, error) {
 
 	// Create buckets
 	err = db.Update(func(tx *bolt.Tx) error {
-		for _, bucket := range [][]byte{bucketLibraries, bucketContent, bucketSeasons, bucketEpisodes, bucketPlaylists} {
+		for _, bucket := range [][]byte{bucketLibraries, bucketContent, bucketSeasons, bucketEpisodes, bucketPlaylists, bucketQueue} {
 			if _, err := tx.CreateBucketIfNotExists(bucket); err != nil {
 				return err
 			}
@@ -366,7 +367,7 @@ func (s *LibraryStore) InvalidateAll() {
 
 	// Delete all data from all buckets
 	s.db.Update(func(tx *bolt.Tx) error {
-		for _, bucket := range [][]byte{bucketLibraries, bucketContent, bucketSeasons, bucketEpisodes, bucketPlaylists} {
+		for _, bucket := range [][]byte{bucketLibraries, bucketContent, bucketSeasons, bucketEpisodes, bucketPlaylists, bucketQueue} {
 			b := tx.Bucket(bucket)
 			if b == nil {
 				continue
@@ -410,6 +411,22 @@ func (s *LibraryStore) InvalidatePlaylists() {
 
 func (s *LibraryStore) InvalidatePlaylistItems(playlistID string) {
 	s.delete(bucketPlaylists, "items:"+playlistID)
+}
+
+// === Local Queue ===
+
+func (s *LibraryStore) GetQueueItems() ([]*domain.MediaItem, bool) {
+	var items []*domain.MediaItem
+	ok := s.get(bucketQueue, "items", &items)
+	return items, ok
+}
+
+func (s *LibraryStore) SaveQueueItems(items []*domain.MediaItem) error {
+	return s.set(bucketQueue, "items", items)
+}
+
+func (s *LibraryStore) InvalidateQueue() {
+	s.delete(bucketQueue, "items")
 }
 
 // wrapListItems converts domain.ListItem slice to serializable wrappers

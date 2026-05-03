@@ -90,10 +90,11 @@ func run() error {
 	librarySvc := library.NewService(client, libraryStore, logger)
 	playlistSvc := playlist.NewService(client, libraryStore, logger)
 	searchSvc := search.NewService(libraryStore)
+	searchSvc.SetRemote(client)
 	playbackSvc := player.NewService(launcher, client, logger)
 
 	// Create TUI model with Store and concrete service types
-	model := tui.NewModel(libraryStore, librarySvc, playlistSvc, searchSvc, playbackSvc, cfg.UI)
+	model := tui.NewModel(libraryStore, librarySvc, playlistSvc, searchSvc, playbackSvc, cfg, cfg.UI)
 
 	// Run the TUI
 	p := tea.NewProgram(

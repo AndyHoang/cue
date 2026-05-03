@@ -2,6 +2,7 @@ package tui
 
 import (
 	"github.com/SuperCoolPencil/cue/internal/domain"
+	"github.com/SuperCoolPencil/cue/internal/search"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -139,4 +140,17 @@ type PlaylistModalDataMsg struct {
 	Playlists  []*domain.Playlist
 	Membership map[string]bool
 	Item       *domain.MediaItem
+}
+
+// RemoteSearchLoadedMsg carries server-side fallback search results.
+type RemoteSearchLoadedMsg struct {
+	Query   string
+	Results []search.FilterResult
+	Error   error
+}
+
+// QueueUpdatedMsg signals local queue changes.
+type QueueUpdatedMsg struct {
+	Message string
+	Error   error
 }

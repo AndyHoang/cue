@@ -31,6 +31,10 @@ type Store interface {
 	GetPlaylistItems(playlistID string) ([]*MediaItem, bool)
 	SavePlaylistItems(playlistID string, items []*MediaItem) error
 
+	// === Local Queue ===
+	GetQueueItems() ([]*MediaItem, bool)
+	SaveQueueItems(items []*MediaItem) error
+
 	// === Freshness ===
 	IsValid(libID string, serverTS int64) bool
 
@@ -40,6 +44,7 @@ type Store interface {
 	InvalidateSeason(libID, showID, seasonID string)
 	InvalidatePlaylists()
 	InvalidatePlaylistItems(playlistID string)
+	InvalidateQueue()
 	InvalidateAll()
 
 	Close() error

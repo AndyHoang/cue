@@ -2,8 +2,10 @@ package tui
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/SuperCoolPencil/cue/internal/config"
 	"github.com/SuperCoolPencil/cue/internal/domain"
 	"github.com/SuperCoolPencil/cue/internal/search"
 	"github.com/SuperCoolPencil/cue/internal/tui/components"
@@ -187,6 +189,9 @@ func (m *Model) drillSelected() *drillResult {
 
 	switch v := item.(type) {
 	case domain.Library:
+		if result := m.drillVirtualLibrary(v, cursor); result != nil {
+			return result
+		}
 		// Handle synthetic "Playlists" entry
 		if v.ID == playlistsLibraryID {
 			col := components.NewListColumn(components.ColumnTypePlaylists, "Playlists")
@@ -349,6 +354,110 @@ func (m *Model) drillSelected() *drillResult {
 	return nil
 }
 
+func (m *Model) drillVirtualLibrary(v domain.Library, cursor int) *drillResult {
+	var items interface{}
+	title := v.Name
+	contentID := v.ID
+
+	switch v.ID {
+	case continueLibraryID:
+		items = m.LibraryService.ContinueWatching(0)
+	case recentLibraryID:
+		items = m.LibraryService.RecentlyAdded(0)
+	case queueLibraryID:
+		items = m.PlaylistService.QueueItems()
+	case filtersLibraryID:
+		items = smartFilterEntries()
+	case profilesLibraryID:
+		items = m.profileEntries()
+	case configLibraryID:
+		items = m.configEntries()
+	case cacheLibraryID:
+		items = m.cacheEntries()
+	case "__config_watch__":
+		m.UIConfig.ShowWatchStatus = !m.UIConfig.ShowWatchStatus
+		if m.AppConfig != nil {
+			m.AppConfig.UI.ShowWatchStatus = m.UIConfig.ShowWatchStatus
+			if err := config.SaveConfig(m.AppConfig); err != nil {
+				m.StatusMsg = fmt.Sprintf("Failed to save config: %v", err)
+				m.StatusIsErr = true
+				return &drillResult{AwaitKind: AwaitNone}
+			}
+		}
+		if top := m.ColumnStack.Top(); top != nil {
+			top.SetItems(m.configEntries())
+		}
+		m.StatusMsg = "Saved watch indicator setting"
+		return &drillResult{AwaitKind: AwaitNone}
+	case "__config_counts__":
+		m.UIConfig.ShowLibraryCounts = !m.UIConfig.ShowLibraryCounts
+		if m.AppConfig != nil {
+			m.AppConfig.UI.ShowLibraryCounts = m.UIConfig.ShowLibraryCounts
+			if err := config.SaveConfig(m.AppConfig); err != nil {
+				m.StatusMsg = fmt.Sprintf("Failed to save config: %v", err)
+				m.StatusIsErr = true
+				return &drillResult{AwaitKind: AwaitNone}
+			}
+		}
+		if top := m.ColumnStack.Top(); top != nil {
+			top.SetItems(m.configEntries())
+		}
+		m.StatusMsg = "Saved library count setting"
+		return &drillResult{AwaitKind: AwaitNone}
+	case "__cache_clear__":
+		m.LibraryService.InvalidateAll()
+		m.PlaylistService.ClearQueue()
+		m.PlaylistService.InvalidatePlaylists()
+		if err := config.ClearCache(); err != nil {
+			m.StatusMsg = fmt.Sprintf("Failed to clear cache: %v", err)
+			m.StatusIsErr = true
+			return &drillResult{AwaitKind: AwaitNone}
+		}
+		if top := m.ColumnStack.Top(); top != nil {
+			top.SetItems(m.cacheEntries())
+		}
+		m.StatusMsg = "Cache cleared"
+		return &drillResult{AwaitKind: AwaitNone}
+	default:
+		if strings.HasPrefix(v.ID, "__profile_") && v.ID != "__profile_current__" {
+			name := strings.TrimPrefix(v.ID, "__profile_")
+			if m.AppConfig != nil {
+				m.AppConfig.CurrentProfile = name
+				m.AppConfig.ApplyProfileForUI(name)
+				if err := config.SaveConfig(m.AppConfig); err != nil {
+					m.StatusMsg = fmt.Sprintf("Failed to save profile: %v", err)
+					m.StatusIsErr = true
+					return &drillResult{AwaitKind: AwaitNone}
+				}
+			}
+			m.StatusMsg = "Switched profile. Restart Cue to reconnect."
+			if top := m.ColumnStack.Top(); top != nil {
+				top.SetItems(m.profileEntries())
+			}
+			return &drillResult{AwaitKind: AwaitNone}
+		}
+		if key := filterKey(v.ID); key != "" {
+			items = m.LibraryService.SmartFiltered(key, 0)
+			contentID = v.ID
+		} else {
+			return nil
+		}
+	}
+
+	colType := components.ColumnTypeMixed
+	if _, ok := items.([]domain.Library); ok {
+		colType = components.ColumnTypeLibraries
+	}
+	col := components.NewListColumn(colType, title)
+	col.SetShowWatchStatus(m.UIConfig.ShowWatchStatus)
+	col.SetContentID(contentID)
+	col.SetItems(items)
+	m.ColumnStack.Push(col, cursor)
+	m.updateLayout()
+	m.updateInspector()
+	return &drillResult{AwaitKind: AwaitNone}
+}
+
 // drillIntoSelection pushes a new column for the selected item
 func (m Model) drillIntoSelection() (tea.Model, tea.Cmd) {
 	result := m.drillSelected()
@@ -465,9 +574,10 @@ func (m *Model) navigateToSearchResult(item search.FilterItem) tea.Cmd {
 	m.Inspector.SetLibraryStates(m.LibraryStates)
 
 	// Find and select the library
+	virtualOffset := len(virtualLibraryEntries())
 	for i, lib := range m.Libraries {
 		if lib.ID == navCtx.LibraryID {
-			libCol.SetSelectedIndex(i)
+			libCol.SetSelectedIndex(i + virtualOffset)
 			break
 		}
 	}
