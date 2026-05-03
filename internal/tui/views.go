@@ -198,64 +198,201 @@ func (m Model) renderFooter() string {
 	return left + strings.Repeat(" ", leftPad) + center + strings.Repeat(" ", rightPad) + right
 }
 
+// helpEntry is a key-description pair for the help screen
+type helpEntry struct {
+	key  string
+	desc string
+}
+
 // renderHelp renders the help screen
 func (m Model) renderHelp() string {
-	help := `
-NAVIGATION                      PLAYBACK
-  j/k        Up/down               Enter  Play/resume
-  h/l        Back/drill in         p      Play from start
-  g/Home     First item            w      Mark watched
-  G/End      Last item             u      Mark unwatched
-  PgUp/PgDn  Scroll page
-  Ctrl+u/d   Scroll half page
+	nav := []helpEntry{
+		{"j / k", "Up / Down"},
+		{"h / l", "Back / Drill in"},
+		{"g / Home", "First item"},
+		{"G / End", "Last item"},
+		{"PgUp/Dn", "Scroll page"},
+		{"^u / ^d", "Scroll half page"},
+	}
 
-SEARCH & VIEW                   OTHER
-  /          Filter                r      Refresh library
-  f          Global search         R      Refresh all
-  s          Sort                  q      Quit
-  i          Toggle inspector      ?      This help
-  Space      Manage playlists      Esc    Close / Cancel
-  a          Add/remove queue      N      Next episode
-                                   L      Logout
+	playback := []helpEntry{
+		{"Enter", "Play / Resume"},
+		{"p", "Play from start"},
+		{"w", "Mark watched"},
+		{"u", "Mark unwatched"},
+		{"N", "Next episode"},
+	}
 
-Press any key to return...
-`
+	searchView := []helpEntry{
+		{"/", "Filter"},
+		{"f", "Global search"},
+		{"s", "Sort"},
+		{"i", "Toggle inspector"},
+		{"Space", "Manage playlists"},
+		{"a", "Add/remove queue"},
+	}
+
+	other := []helpEntry{
+		{"r", "Refresh library"},
+		{"R", "Refresh all"},
+		{"q", "Quit"},
+		{"L", "Logout"},
+		{"?", "This help"},
+		{"Esc", "Close / Cancel"},
+	}
+
+	keyW := 12
+	descW := 18
+	gap := 4
+	colW := keyW + descW
+	totalW := colW*2 + gap
+
+	bg := lipgloss.NewStyle().Background(styles.SlateDark)
+	keyStyle := bg.Foreground(styles.PlexOrange).Width(keyW)
+	descStyle := bg.Foreground(styles.LightGray).Width(descW)
+	headerStyle := bg.Foreground(styles.PlexOrange).Bold(true).Width(colW)
+	gapStyle := bg.Width(gap)
+	fullRowStyle := bg.Width(totalW)
+
+	// Build rows: pair left and right sections side by side
+	sections := []struct {
+		leftTitle  string
+		left       []helpEntry
+		rightTitle string
+		right      []helpEntry
+	}{
+		{"NAVIGATION", nav, "PLAYBACK", playback},
+		{"SEARCH & VIEW", searchView, "OTHER", other},
+	}
+
+	var rows []string
+	for i, sec := range sections {
+		if i > 0 {
+			// Blank separator row between section pairs
+			rows = append(rows, fullRowStyle.Render(""))
+		}
+
+		// Headers
+		rows = append(rows, headerStyle.Render(sec.leftTitle)+gapStyle.Render("")+headerStyle.Render(sec.rightTitle))
+
+		// Entry rows — pad whichever side is shorter
+		maxLen := len(sec.left)
+		if len(sec.right) > maxLen {
+			maxLen = len(sec.right)
+		}
+		for j := 0; j < maxLen; j++ {
+			var leftPart, rightPart string
+			if j < len(sec.left) {
+				leftPart = keyStyle.Render(sec.left[j].key) + descStyle.Render(sec.left[j].desc)
+			} else {
+				leftPart = bg.Width(colW).Render("")
+			}
+			if j < len(sec.right) {
+				rightPart = keyStyle.Render(sec.right[j].key) + descStyle.Render(sec.right[j].desc)
+			} else {
+				rightPart = bg.Width(colW).Render("")
+			}
+			rows = append(rows, leftPart+gapStyle.Render("")+rightPart)
+		}
+	}
+
+	footerStyle := lipgloss.NewStyle().
+		Foreground(styles.DimGray).
+		Italic(true).
+		Width(totalW).
+		Align(lipgloss.Center).
+		Background(styles.SlateDark).
+		MarginTop(1)
+
+	rows = append(rows, footerStyle.Render("Press any key to return"))
+
+	content := lipgloss.JoinVertical(lipgloss.Left, rows...)
+
+	modal := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(styles.PlexOrange).
+		Background(styles.SlateDark).
+		Padding(1, 2).
+		Render(content)
 
 	return lipgloss.Place(m.Width, m.Height,
 		lipgloss.Center, lipgloss.Center,
-		styles.ModalStyle.Render(help))
+		modal)
+}
+
+// renderConfirmDialog renders a centered confirmation modal with styled buttons
+func renderConfirmDialog(width, height int, title, body, yesLabel, noLabel string) string {
+	modalWidth := 42
+
+	bg := lipgloss.NewStyle().Background(styles.SlateDark)
+
+	titleStyle := bg.
+		Foreground(styles.White).
+		Bold(true).
+		Width(modalWidth).
+		Align(lipgloss.Center)
+
+	bodyStyle := bg.
+		Foreground(styles.LightGray).
+		Width(modalWidth).
+		Align(lipgloss.Center).
+		MarginTop(1)
+
+	yesBtn := lipgloss.NewStyle().
+		Foreground(styles.White).
+		Background(styles.PlexOrange).
+		Padding(0, 2).
+		Bold(true).
+		Render(yesLabel)
+
+	btnGap := bg.Render("   ")
+
+	noBtn := lipgloss.NewStyle().
+		Foreground(styles.LightGray).
+		Background(styles.SlateLight).
+		Padding(0, 2).
+		Render(noLabel)
+
+	buttonRow := bg.
+		Width(modalWidth).
+		Align(lipgloss.Center).
+		MarginTop(1).
+		Render(yesBtn + btnGap + noBtn)
+
+	content := lipgloss.JoinVertical(lipgloss.Left,
+		titleStyle.Render(title),
+		bodyStyle.Render(body),
+		buttonRow,
+	)
+
+	modal := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(styles.PlexOrange).
+		Background(styles.SlateDark).
+		Padding(1, 2).
+		Render(content)
+
+	return lipgloss.Place(width, height,
+		lipgloss.Center, lipgloss.Center,
+		modal)
 }
 
 func (m Model) renderResumeConfirmation() string {
-	title := "Selected item"
+	title := "Resume Playback?"
+	body := "Selected item"
 	if m.pendingPlayback != nil {
-		title = m.pendingPlayback.Title
+		body = styles.Truncate(m.pendingPlayback.Title, 38)
 	}
-	modal := fmt.Sprintf(`
-           Resume Playback?
 
-  %s
-
-  [Y] Resume      [N] Start Over
-`, title)
-
-	return lipgloss.Place(m.Width, m.Height,
-		lipgloss.Center, lipgloss.Center,
-		styles.ModalStyle.Render(modal))
+	return renderConfirmDialog(m.Width, m.Height,
+		title, body,
+		"Y  Resume", "N  Start Over")
 }
 
 // renderLogoutConfirmation renders the logout confirmation modal
 func (m Model) renderLogoutConfirmation() string {
-	modal := `
-              Log Out?
-
-  This will clear your credentials,
-  server URL, and all cached data.
-
-        [Y] Yes      [N] No
-`
-
-	return lipgloss.Place(m.Width, m.Height,
-		lipgloss.Center, lipgloss.Center,
-		styles.ModalStyle.Render(modal))
+	return renderConfirmDialog(m.Width, m.Height,
+		"Log Out?",
+		"This will clear your credentials,\nserver URL, and all cached data.",
+		"Y  Yes", "N  No")
 }
