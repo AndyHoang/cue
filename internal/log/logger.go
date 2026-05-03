@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mmcdole/kino/internal/config"
+	"github.com/SuperCoolPencil/cue/internal/config"
 )
 
 // SetupLogger initializes the slog logger with file output

@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mmcdole/kino/internal/domain"
+	"github.com/SuperCoolPencil/cue/internal/domain"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -57,7 +57,7 @@ func NewLibraryStore(baseCacheDir, serverURL string) (*LibraryStore, error) {
 		return nil, err
 	}
 
-	dbPath := filepath.Join(dir, "kino.db")
+	dbPath := filepath.Join(dir, "cue.db")
 	db, err := bolt.Open(dbPath, 0600, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
 		return nil, fmt.Errorf("failed to open bolt db: %w", err)

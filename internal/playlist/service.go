@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/mmcdole/kino/internal/domain"
+	"github.com/SuperCoolPencil/cue/internal/domain"
 )
 
 // Service orchestrates playlist client + store + CRUD operations.

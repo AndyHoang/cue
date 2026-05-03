@@ -1,10 +1,10 @@
 package components
 
 import (
+	"github.com/SuperCoolPencil/cue/internal/tui/styles"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/mmcdole/kino/internal/tui/styles"
 )
 
 // InputModal is a simple text input modal

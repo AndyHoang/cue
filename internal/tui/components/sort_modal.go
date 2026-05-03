@@ -3,10 +3,10 @@ package components
 import (
 	"strings"
 
+	"github.com/SuperCoolPencil/cue/internal/tui/styles"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/mmcdole/kino/internal/tui/styles"
 )
 
 // SortField represents a field to sort by

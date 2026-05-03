@@ -157,9 +157,9 @@ func (f *AuthFlow) authenticate(ctx context.Context, serverURL, username, passwo
 // buildAuthHeader constructs the X-Emby-Authorization header
 func buildAuthHeader(token string) string {
 	parts := []string{
-		`MediaBrowser Client="Kino"`,
+		`MediaBrowser Client="Cue"`,
 		`Device="CLI"`,
-		`DeviceId="kino-tui-client"`,
+		`DeviceId="cue-tui-client"`,
 		`Version="1.0.0"`,
 	}
 

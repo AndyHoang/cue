@@ -6,10 +6,10 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/mmcdole/kino/internal/config"
-	"github.com/mmcdole/kino/internal/domain"
-	"github.com/mmcdole/kino/internal/mediaserver/jellyfin"
-	"github.com/mmcdole/kino/internal/mediaserver/plex"
+	"github.com/SuperCoolPencil/cue/internal/config"
+	"github.com/SuperCoolPencil/cue/internal/domain"
+	"github.com/SuperCoolPencil/cue/internal/mediaserver/jellyfin"
+	"github.com/SuperCoolPencil/cue/internal/mediaserver/plex"
 )
 
 // MediaSource combines all client interfaces that a media server backend must implement.

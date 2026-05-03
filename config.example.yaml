@@ -1,5 +1,5 @@
-# Kino Configuration Example
-# Copy this file to ~/.config/kino/config.yaml
+# Cue Configuration Example
+# Copy this file to ~/.config/cue/config.yaml
 
 # Server Configuration
 # Supports both Plex and Jellyfin backends
@@ -35,6 +35,6 @@ ui:
 # Logging Configuration
 logging:
   # Log file location (use ~ for home directory)
-  file: "~/.local/share/kino/kino.log"
+  file: "~/.local/share/cue/cue.log"
   # Log level: "DEBUG", "INFO", "WARN", "ERROR"
   level: "INFO"

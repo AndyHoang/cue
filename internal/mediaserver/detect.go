@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mmcdole/kino/internal/config"
+	"github.com/SuperCoolPencil/cue/internal/config"
 )
 
 const detectTimeout = 10 * time.Second

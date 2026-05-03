@@ -71,10 +71,10 @@ func DefaultConfig() *Config {
 func defaultLogPath() string {
 	switch runtime.GOOS {
 	case "windows":
-		return filepath.Join(os.Getenv("APPDATA"), "kino", "kino.log")
+		return filepath.Join(os.Getenv("APPDATA"), "cue", "cue.log")
 	default:
 		home, _ := os.UserHomeDir()
-		return filepath.Join(home, ".local", "share", "kino", "kino.log")
+		return filepath.Join(home, ".local", "share", "cue", "cue.log")
 	}
 }
 
@@ -82,10 +82,10 @@ func defaultLogPath() string {
 func defaultConfigPath() string {
 	switch runtime.GOOS {
 	case "windows":
-		return filepath.Join(os.Getenv("APPDATA"), "kino")
+		return filepath.Join(os.Getenv("APPDATA"), "cue")
 	default:
 		home, _ := os.UserHomeDir()
-		return filepath.Join(home, ".config", "kino")
+		return filepath.Join(home, ".config", "cue")
 	}
 }
 
@@ -99,7 +99,7 @@ func LoadConfig() (*Config, error) {
 	viper.AddConfigPath(".")
 
 	// Environment variable overrides
-	viper.SetEnvPrefix("KINO")
+	viper.SetEnvPrefix("CUE")
 	viper.AutomaticEnv()
 
 	// Read config file if it exists
@@ -163,10 +163,10 @@ func (c *Config) IsConfigured() bool {
 func DefaultCachePath() string {
 	switch runtime.GOOS {
 	case "windows":
-		return filepath.Join(os.Getenv("LOCALAPPDATA"), "kino", "cache")
+		return filepath.Join(os.Getenv("LOCALAPPDATA"), "cue", "cache")
 	default:
 		home, _ := os.UserHomeDir()
-		return filepath.Join(home, ".local", "share", "kino", "cache")
+		return filepath.Join(home, ".local", "share", "cue", "cache")
 	}
 }
 

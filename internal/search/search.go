@@ -3,7 +3,7 @@ package search
 import (
 	"strings"
 
-	"github.com/mmcdole/kino/internal/domain"
+	"github.com/SuperCoolPencil/cue/internal/domain"
 )
 
 // FilterItem represents a searchable item

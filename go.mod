@@ -1,4 +1,4 @@
-module github.com/mmcdole/kino
+module github.com/SuperCoolPencil/cue
 
 go 1.25.5
 

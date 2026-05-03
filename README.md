@@ -1,6 +1,6 @@
-# Kino
+# Cue
 
-![Kino Demo](demo.gif?v=3)
+![Cue Demo](demo.gif?v=3)
 
 > A fast terminal client for browsing and playing media from Plex and Jellyfin servers
 
@@ -17,21 +17,21 @@
 
 ### Installation
 
-**Download** from [Releases](https://github.com/mmcdole/kino/releases) or install with Go:
+**Download** from [Releases](https://github.com/SuperCoolPencil/cue/releases) or install with Go:
 
 ```bash
-go install github.com/mmcdole/kino/cmd/kino@latest
+go install github.com/SuperCoolPencil/cue/cmd/cue@latest
 ```
 
 ### First Run
 
-Launch Kino and follow the interactive setup:
+Launch Cue and follow the interactive setup:
 
 ```bash
-kino
+cue
 ```
 
-You'll be prompted to enter your server URL. Kino automatically detects whether it's a Plex or Jellyfin server and guides you through the appropriate authentication.
+You'll be prompted to enter your server URL. Cue automatically detects whether it's a Plex or Jellyfin server and guides you through the appropriate authentication.
 
 ## Usage
 
@@ -57,9 +57,13 @@ You'll be prompted to enter your server URL. Kino automatically detects whether 
 
 ## Configuration
 
-Config file: `~/.config/kino/config.yaml` (created on first run).
+Config file: `~/.config/cue/config.yaml` (created on first run).
 
-Kino auto-detects video players (mpv, VLC, IINA, Celluloid, etc.) with resume support. See `config.example.yaml` for custom player setup and all options.
+Cue auto-detects video players (mpv, VLC, IINA, Celluloid, etc.) with resume support. See `config.example.yaml` for custom player setup and all options.
+
+## Attribution
+
+Cue is forked from [Kino](https://github.com/mmcdole/kino), originally created by Matthew McDole. The original MIT license notice is preserved in `LICENSE`.
 
 ## License
 

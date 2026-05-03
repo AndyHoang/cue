@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/SuperCoolPencil/cue/internal/tui/components"
+	"github.com/SuperCoolPencil/cue/internal/tui/styles"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/mmcdole/kino/internal/tui/components"
-	"github.com/mmcdole/kino/internal/tui/styles"
 )
 
 // RenderSpinner renders a loading spinner

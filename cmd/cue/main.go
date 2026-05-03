@@ -10,17 +10,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/SuperCoolPencil/cue/internal/config"
+	"github.com/SuperCoolPencil/cue/internal/library"
+	"github.com/SuperCoolPencil/cue/internal/log"
+	"github.com/SuperCoolPencil/cue/internal/mediaserver"
+	"github.com/SuperCoolPencil/cue/internal/player"
+	"github.com/SuperCoolPencil/cue/internal/playlist"
+	"github.com/SuperCoolPencil/cue/internal/search"
+	"github.com/SuperCoolPencil/cue/internal/store"
+	"github.com/SuperCoolPencil/cue/internal/tui"
+	"github.com/SuperCoolPencil/cue/internal/tui/styles"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/mmcdole/kino/internal/config"
-	"github.com/mmcdole/kino/internal/library"
-	"github.com/mmcdole/kino/internal/log"
-	"github.com/mmcdole/kino/internal/mediaserver"
-	"github.com/mmcdole/kino/internal/player"
-	"github.com/mmcdole/kino/internal/playlist"
-	"github.com/mmcdole/kino/internal/search"
-	"github.com/mmcdole/kino/internal/store"
-	"github.com/mmcdole/kino/internal/tui"
-	"github.com/mmcdole/kino/internal/tui/styles"
 )
 
 // Version is set at build time via -ldflags
@@ -37,7 +37,7 @@ func main() {
 	flag.Parse()
 
 	if showVersion {
-		fmt.Printf("kino %s\n", Version)
+		fmt.Printf("cue %s\n", Version)
 		return
 	}
 
@@ -62,7 +62,7 @@ func run() error {
 	}
 	slog.SetDefault(logger)
 
-	logger.Info("starting kino", "version", Version)
+	logger.Info("starting cue", "version", Version)
 
 	// Check if configured
 	if !cfg.IsConfigured() {
@@ -116,7 +116,7 @@ func run() error {
 // runSetupFlow handles the initial setup when not configured
 func runSetupFlow(cfg *config.Config, logger *slog.Logger) error {
 	fmt.Println()
-	fmt.Println("Welcome to Kino!")
+	fmt.Println("Welcome to Cue!")
 	fmt.Println()
 
 	// Loop until we get a valid server URL
@@ -180,7 +180,7 @@ func runSetupFlow(cfg *config.Config, logger *slog.Logger) error {
 	fmt.Println()
 	fmt.Println("✓ Configuration saved!")
 	fmt.Println()
-	fmt.Println("Run kino again to start the application.")
+	fmt.Println("Run cue again to start the application.")
 
 	return nil
 }

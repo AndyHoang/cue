@@ -13,13 +13,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mmcdole/kino/internal/domain"
+	"github.com/SuperCoolPencil/cue/internal/domain"
 )
 
 const (
 	defaultTimeout = 30 * time.Second
-	userAgent      = "Kino/1.0"
-	clientID       = "kino-tui-client"
+	userAgent      = "Cue/1.0"
+	clientID       = "cue-tui-client"
 )
 
 // Client implements domain.LibraryRepository, domain.SearchRepository,
@@ -94,7 +94,7 @@ func (c *Client) doRequest(ctx context.Context, method, path string, query url.V
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("X-Plex-Token", c.token)
 	req.Header.Set("X-Plex-Client-Identifier", clientID)
-	req.Header.Set("X-Plex-Product", "Kino")
+	req.Header.Set("X-Plex-Product", "Cue")
 	req.Header.Set("X-Plex-Version", "1.0")
 	req.Header.Set("User-Agent", userAgent)
 
@@ -421,7 +421,7 @@ func (c *Client) CreatePlaylist(ctx context.Context, title string, itemIDs []str
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("X-Plex-Token", c.token)
 	req.Header.Set("X-Plex-Client-Identifier", clientID)
-	req.Header.Set("X-Plex-Product", "Kino")
+	req.Header.Set("X-Plex-Product", "Cue")
 	req.Header.Set("X-Plex-Version", "1.0")
 	req.Header.Set("User-Agent", userAgent)
 
@@ -486,7 +486,7 @@ func (c *Client) AddToPlaylist(ctx context.Context, playlistID string, itemIDs [
 		req.Header.Set("Accept", "application/json")
 		req.Header.Set("X-Plex-Token", c.token)
 		req.Header.Set("X-Plex-Client-Identifier", clientID)
-		req.Header.Set("X-Plex-Product", "Kino")
+		req.Header.Set("X-Plex-Product", "Cue")
 		req.Header.Set("X-Plex-Version", "1.0")
 		req.Header.Set("User-Agent", userAgent)
 
@@ -545,7 +545,7 @@ func (c *Client) RemoveFromPlaylist(ctx context.Context, playlistID string, item
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("X-Plex-Token", c.token)
 	req.Header.Set("X-Plex-Client-Identifier", clientID)
-	req.Header.Set("X-Plex-Product", "Kino")
+	req.Header.Set("X-Plex-Product", "Cue")
 	req.Header.Set("X-Plex-Version", "1.0")
 	req.Header.Set("User-Agent", userAgent)
 
@@ -576,7 +576,7 @@ func (c *Client) DeletePlaylist(ctx context.Context, playlistID string) error {
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("X-Plex-Token", c.token)
 	req.Header.Set("X-Plex-Client-Identifier", clientID)
-	req.Header.Set("X-Plex-Product", "Kino")
+	req.Header.Set("X-Plex-Product", "Cue")
 	req.Header.Set("X-Plex-Version", "1.0")
 	req.Header.Set("User-Agent", userAgent)
 

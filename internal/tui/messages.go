@@ -1,8 +1,8 @@
 package tui
 
 import (
+	"github.com/SuperCoolPencil/cue/internal/domain"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/mmcdole/kino/internal/domain"
 )
 
 // Message types for the TUI

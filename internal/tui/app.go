@@ -5,14 +5,14 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/SuperCoolPencil/cue/internal/config"
+	"github.com/SuperCoolPencil/cue/internal/domain"
+	"github.com/SuperCoolPencil/cue/internal/library"
+	"github.com/SuperCoolPencil/cue/internal/player"
+	"github.com/SuperCoolPencil/cue/internal/playlist"
+	"github.com/SuperCoolPencil/cue/internal/search"
+	"github.com/SuperCoolPencil/cue/internal/tui/components"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/mmcdole/kino/internal/config"
-	"github.com/mmcdole/kino/internal/domain"
-	"github.com/mmcdole/kino/internal/library"
-	"github.com/mmcdole/kino/internal/player"
-	"github.com/mmcdole/kino/internal/playlist"
-	"github.com/mmcdole/kino/internal/search"
-	"github.com/mmcdole/kino/internal/tui/components"
 )
 
 // ApplicationState represents the current state of the application

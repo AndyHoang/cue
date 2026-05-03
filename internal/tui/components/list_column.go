@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/SuperCoolPencil/cue/internal/domain"
+	"github.com/SuperCoolPencil/cue/internal/tui/styles"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/mmcdole/kino/internal/domain"
-	"github.com/mmcdole/kino/internal/tui/styles"
 	"github.com/sahilm/fuzzy"
 )
 

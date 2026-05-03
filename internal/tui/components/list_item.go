@@ -1,7 +1,7 @@
 package components
 
 import (
-	"github.com/mmcdole/kino/internal/domain"
+	"github.com/SuperCoolPencil/cue/internal/domain"
 )
 
 // Conversion functions to convert domain slices to []domain.ListItem
@@ -68,4 +68,3 @@ func WrapPlaylistItems(items []*domain.MediaItem) []domain.ListItem {
 	}
 	return result
 }
-

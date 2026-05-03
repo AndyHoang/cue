@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mmcdole/kino/internal/domain"
+	"github.com/SuperCoolPencil/cue/internal/domain"
 )
 
 const (

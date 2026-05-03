@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/SuperCoolPencil/cue/internal/domain"
+	"github.com/SuperCoolPencil/cue/internal/search"
+	"github.com/SuperCoolPencil/cue/internal/tui/components"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/mmcdole/kino/internal/domain"
-	"github.com/mmcdole/kino/internal/search"
-	"github.com/mmcdole/kino/internal/tui/components"
 )
 
 // NavAwaitKind specifies what async load the plan is waiting for

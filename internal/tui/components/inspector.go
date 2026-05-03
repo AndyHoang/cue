@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/SuperCoolPencil/cue/internal/domain"
+	"github.com/SuperCoolPencil/cue/internal/tui/styles"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/mmcdole/kino/internal/domain"
-	"github.com/mmcdole/kino/internal/tui/styles"
 )
 
 // Layout constants for inspector

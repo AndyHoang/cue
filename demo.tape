@@ -1,4 +1,4 @@
-# VHS Demo for Kino
+# VHS Demo for Cue
 Output demo.gif
 
 Set FontSize 18
@@ -6,7 +6,7 @@ Set FontFamily "Hack"
 Set Width 1200
 Set Theme "TokyoNight"
 
-Type "kino"
+Type "cue"
 Enter
 Sleep 2s
 

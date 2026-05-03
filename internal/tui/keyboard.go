@@ -3,9 +3,9 @@ package tui
 import (
 	"time"
 
+	"github.com/SuperCoolPencil/cue/internal/tui/components"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/mmcdole/kino/internal/tui/components"
 )
 
 // handleKeyMsg handles keyboard input

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/mmcdole/kino/internal/config"
-	"github.com/mmcdole/kino/internal/mediaserver/jellyfin"
-	"github.com/mmcdole/kino/internal/mediaserver/plex"
+	"github.com/SuperCoolPencil/cue/internal/config"
+	"github.com/SuperCoolPencil/cue/internal/mediaserver/jellyfin"
+	"github.com/SuperCoolPencil/cue/internal/mediaserver/plex"
 )
 
 // AuthResult contains the result of a successful authentication

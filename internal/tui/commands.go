@@ -6,12 +6,12 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/SuperCoolPencil/cue/internal/config"
+	"github.com/SuperCoolPencil/cue/internal/domain"
+	"github.com/SuperCoolPencil/cue/internal/library"
+	"github.com/SuperCoolPencil/cue/internal/player"
+	"github.com/SuperCoolPencil/cue/internal/playlist"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/mmcdole/kino/internal/config"
-	"github.com/mmcdole/kino/internal/domain"
-	"github.com/mmcdole/kino/internal/library"
-	"github.com/mmcdole/kino/internal/player"
-	"github.com/mmcdole/kino/internal/playlist"
 )
 
 // syncChannelSize is the buffer size for sync progress channels
