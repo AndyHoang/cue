@@ -361,8 +361,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case PlaybackStartedMsg:
-		m.StatusMsg = "Launched: " + msg.Item.Title
+		m.StatusMsg = "Playing: " + msg.Item.Title
+		if msg.ResultCh != nil {
+			return m, WaitForPlaybackCmd(msg.ResultCh)
+		}
 		return m, nil
+
+	case PlaybackFinishedMsg:
+		if msg.Err != nil {
+			m.StatusMsg = "Playback error: " + msg.Err.Error()
+			m.StatusIsErr = true
+		} else if msg.AutoMarked {
+			m.StatusMsg = "✓ Finished & marked watched: " + msg.Title
+		} else {
+			m.StatusMsg = "Finished: " + msg.Title
+		}
+		// Refresh view to update watch status indicators
+		cmds = append(cmds, m.refreshCurrentView())
+		cmds = append(cmds, ClearStatusCmd(3*time.Second))
+		return m, tea.Batch(cmds...)
 
 	case MarkWatchedMsg:
 		m.StatusMsg = "Marked watched: " + msg.Title

@@ -362,6 +362,18 @@ func (c *Client) MarkUnplayed(ctx context.Context, itemID string) error {
 	return err
 }
 
+// UpdateProgress reports the current playback position to the server
+func (c *Client) UpdateProgress(ctx context.Context, itemID string, positionMs int64) error {
+	query := url.Values{}
+	query.Set("key", itemID)
+	query.Set("identifier", "com.plexapp.plugins.library")
+	query.Set("time", strconv.FormatInt(positionMs, 10))
+	query.Set("state", "stopped")
+
+	_, err := c.doRequest(ctx, http.MethodGet, "/:/progress", query)
+	return err
+}
+
 // GetPlaylists returns all user playlists
 func (c *Client) GetPlaylists(ctx context.Context) ([]*domain.Playlist, error) {
 	body, err := c.doRequest(ctx, http.MethodGet, "/playlists", nil)

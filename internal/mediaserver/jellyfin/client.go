@@ -446,6 +446,41 @@ func (c *Client) MarkUnplayed(ctx context.Context, itemID string) error {
 	return nil
 }
 
+// UpdateProgress reports the current playback position to the server
+func (c *Client) UpdateProgress(ctx context.Context, itemID string, positionMs int64) error {
+	payload := map[string]interface{}{
+		"ItemId":        itemID,
+		"PositionTicks": positionMs * 10000, // ms -> Jellyfin ticks (100ns units)
+	}
+
+	bodyBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal progress: %w", err)
+	}
+
+	path := "/Sessions/Playing/Progress"
+	reqURL := c.baseURL + path
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL, strings.NewReader(string(bodyBytes)))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Emby-Authorization", buildAuthHeader(c.token))
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return domain.ErrServerOffline
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("failed to report progress: status %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
 // GetPlaylists returns all user playlists
 func (c *Client) GetPlaylists(ctx context.Context) ([]*domain.Playlist, error) {
 	query := url.Values{}

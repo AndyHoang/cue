@@ -2,6 +2,7 @@ package tui
 
 import (
 	"github.com/SuperCoolPencil/cue/internal/domain"
+	"github.com/SuperCoolPencil/cue/internal/player"
 	"github.com/SuperCoolPencil/cue/internal/search"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -59,7 +60,15 @@ type EpisodesLoadedMsg struct {
 
 // PlaybackStartedMsg signals that playback has started (player launched)
 type PlaybackStartedMsg struct {
-	Item domain.MediaItem
+	Item     domain.MediaItem
+	ResultCh <-chan player.ScrobbleResult
+}
+
+// PlaybackFinishedMsg signals that playback has ended
+type PlaybackFinishedMsg struct {
+	Title      string
+	AutoMarked bool // true if auto-scrobbled as watched
+	Err        error
 }
 
 // MarkWatchedMsg signals a request to mark an item as watched

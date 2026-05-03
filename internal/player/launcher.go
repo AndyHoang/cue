@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -58,7 +60,7 @@ func NewLauncher(command string, args []string, seekFlag string, logger *slog.Lo
 }
 
 // Launch opens a media URL in the configured player or auto-detected player
-func (l *Launcher) Launch(url string, startOffset time.Duration) error {
+func (l *Launcher) Launch(url string, startOffset time.Duration) (*exec.Cmd, string, error) {
 	offsetSecs := int(startOffset.Seconds())
 
 	// Tier 1: User configured a specific player
@@ -78,7 +80,8 @@ func (l *Launcher) Launch(url string, startOffset time.Duration) error {
 	if offsetSecs > 0 {
 		l.logger.Warn("resume not supported with system default player - starting from beginning")
 	}
-	return l.launchDefault(url)
+	cmd, err := l.launchDefault(url)
+	return cmd, "", err
 }
 
 // detectPlayer returns the first available player from the platform-specific list
@@ -103,8 +106,15 @@ func (l *Launcher) detectPlayer() (PlayerDef, bool) {
 }
 
 // execPlayer launches the detected player with optional seek offset
-func (l *Launcher) execPlayer(player PlayerDef, url string, offsetSecs int) error {
+func (l *Launcher) execPlayer(player PlayerDef, url string, offsetSecs int) (*exec.Cmd, string, error) {
 	args := []string{}
+	var ipcSocket string
+
+	// Enable IPC for mpv
+	if player.Binary == "mpv" {
+		ipcSocket = filepath.Join(os.TempDir(), fmt.Sprintf("cue-mpv-%d.sock", time.Now().UnixNano()))
+		args = append(args, "--input-ipc-server="+ipcSocket)
+	}
 
 	// Add seek flag if we have an offset and the player supports it
 	if offsetSecs > 0 && player.SeekFlag != "" {
@@ -117,11 +127,14 @@ func (l *Launcher) execPlayer(player PlayerDef, url string, offsetSecs int) erro
 
 	l.logger.Debug("executing player", "binary", player.Binary, "args", args)
 	cmd := exec.Command(player.Binary, args...)
-	return cmd.Start()
+	if err := cmd.Start(); err != nil {
+		return nil, "", err
+	}
+	return cmd, ipcSocket, nil
 }
 
 // launchConfigured launches the media using the user-configured player
-func (l *Launcher) launchConfigured(url string, offsetSecs int) error {
+func (l *Launcher) launchConfigured(url string, offsetSecs int) (*exec.Cmd, string, error) {
 	args := append([]string{}, l.args...)
 
 	// Add seek offset: user-configured flag takes precedence, then table lookup
@@ -148,12 +161,23 @@ func (l *Launcher) launchConfigured(url string, offsetSecs int) error {
 	// On macOS, try 'open -a' if command not in PATH (for GUI apps)
 	if runtime.GOOS == "darwin" {
 		if _, err := exec.LookPath(l.command); err != nil {
-			return l.launchMacOSApp(l.command, args)
+			cmd, err := l.launchMacOSApp(l.command, args)
+			return cmd, "", err
 		}
 	}
 
+	// For manual config, we check if it's mpv to enable IPC
+	var ipcSocket string
+	if l.command == "mpv" || strings.HasSuffix(l.command, "/mpv") {
+		ipcSocket = filepath.Join(os.TempDir(), fmt.Sprintf("cue-mpv-%d.sock", time.Now().UnixNano()))
+		args = append([]string{"--input-ipc-server=" + ipcSocket}, args...)
+	}
+
 	cmd := exec.Command(l.command, args...)
-	return cmd.Start()
+	if err := cmd.Start(); err != nil {
+		return nil, "", err
+	}
+	return cmd, ipcSocket, nil
 }
 
 // lookupSeekFlag finds the seek flag for a known player binary
@@ -172,7 +196,7 @@ func (l *Launcher) lookupSeekFlag(binary string) string {
 }
 
 // launchMacOSApp launches a macOS GUI app using 'open -a'
-func (l *Launcher) launchMacOSApp(appName string, playerArgs []string) error {
+func (l *Launcher) launchMacOSApp(appName string, playerArgs []string) (*exec.Cmd, error) {
 	cmdArgs := []string{"-a", appName}
 	if len(playerArgs) > 0 {
 		cmdArgs = append(cmdArgs, "--args")
@@ -181,11 +205,14 @@ func (l *Launcher) launchMacOSApp(appName string, playerArgs []string) error {
 
 	l.logger.Debug("using macOS 'open -a'", "app", appName, "args", cmdArgs)
 	cmd := exec.Command("open", cmdArgs...)
-	return cmd.Start()
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+	return cmd, nil
 }
 
 // launchDefault opens the URL using the system default handler
-func (l *Launcher) launchDefault(url string) error {
+func (l *Launcher) launchDefault(url string) (*exec.Cmd, error) {
 	var cmd *exec.Cmd
 
 	switch runtime.GOOS {
@@ -197,14 +224,18 @@ func (l *Launcher) launchDefault(url string) error {
 	}
 
 	l.logger.Debug("launching with system default", "os", runtime.GOOS, "url", url)
-	return cmd.Start()
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+	return cmd, nil
 }
 
 // Service orchestrates playback operations
 type Service struct {
-	launcher *Launcher
-	playback domain.PlaybackClient
-	logger   *slog.Logger
+	launcher  *Launcher
+	playback  domain.PlaybackClient
+	scrobbler *Scrobbler
+	logger    *slog.Logger
 }
 
 // NewService creates a new playback service
@@ -213,33 +244,40 @@ func NewService(launcher *Launcher, playback domain.PlaybackClient, logger *slog
 		logger = slog.Default()
 	}
 	return &Service{
-		launcher: launcher,
-		playback: playback,
-		logger:   logger,
+		launcher:  launcher,
+		playback:  playback,
+		scrobbler: NewScrobbler(playback, logger),
+		logger:    logger,
 	}
 }
 
 // Play starts playback of a media item from the beginning
-func (s *Service) Play(ctx context.Context, item domain.MediaItem) error {
+func (s *Service) Play(ctx context.Context, item domain.MediaItem) (<-chan ScrobbleResult, error) {
 	return s.playItem(ctx, item, 0)
 }
 
 // Resume starts playback from the saved position
-func (s *Service) Resume(ctx context.Context, item domain.MediaItem) error {
+func (s *Service) Resume(ctx context.Context, item domain.MediaItem) (<-chan ScrobbleResult, error) {
 	return s.playItem(ctx, item, item.ViewOffset)
 }
 
 // playItem resolves URL and launches player
-func (s *Service) playItem(ctx context.Context, item domain.MediaItem, offset time.Duration) error {
+func (s *Service) playItem(ctx context.Context, item domain.MediaItem, offset time.Duration) (<-chan ScrobbleResult, error) {
 	url, err := s.playback.ResolvePlayableURL(ctx, item.ID)
 	if err != nil {
 		s.logger.Error("failed to resolve playable URL", "error", err, "itemID", item.ID)
-		return err
+		return nil, err
 	}
 
 	s.logger.Info("launching playback", "title", item.Title, "itemID", item.ID, "offset", offset)
 
-	return s.launcher.Launch(url, offset)
+	cmd, ipcSocket, err := s.launcher.Launch(url, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	// Start monitoring progress
+	return s.scrobbler.Monitor(ctx, cmd, ipcSocket, item), nil
 }
 
 // MarkWatched marks an item as fully watched
