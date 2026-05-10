@@ -43,34 +43,57 @@ func (m Model) View() string {
 		content = ""
 	} else {
 		topIdx := stackLen - 1
-		currentCol := m.ColumnStack.Get(topIdx)
 
-		// Build columns list based on what's visible
+		// List-height for content columns: 33% of available height
+		listHeight := contentHeight / 3
+		if listHeight < 4 {
+			listHeight = 4
+		}
+		infoHeight := contentHeight - listHeight
+
 		var columnViews []string
 
-		// Add grandparent column if visible (3+ columns, inspector hidden)
-		if layout.grandparentWidth > 0 {
-			grandparentCol := m.ColumnStack.Get(topIdx - 2)
-			grandparentCol.SetSize(layout.grandparentWidth, contentHeight)
-			columnViews = append(columnViews, grandparentCol.View())
-		}
+		switch stackLen {
+		case 1:
+			// Root: library list, full height — no info pane
+			libCol := m.ColumnStack.Get(0)
+			libCol.SetSize(layout.activeWidth, contentHeight)
+			columnViews = append(columnViews, libCol.View())
 
-		// Add parent column if visible (2+ columns)
-		if layout.parentWidth > 0 {
-			parentCol := m.ColumnStack.Get(topIdx - 1)
-			parentCol.SetSize(layout.parentWidth, contentHeight)
-			columnViews = append(columnViews, parentCol.View())
-		}
+		case 2:
+			// Tab 1: library list (full height)
+			// Tab 2: content column split 33/66
+			libCol := m.ColumnStack.Get(0)
+			libCol.SetSize(layout.parentWidth, contentHeight)
+			columnViews = append(columnViews, libCol.View())
 
-		// Active column is always visible
-		currentCol.SetSize(layout.activeWidth, contentHeight)
-		columnViews = append(columnViews, currentCol.View())
+			contentCol := m.ColumnStack.Get(1)
+			columnViews = append(columnViews, m.renderSplitColumn(contentCol, layout.activeWidth, listHeight, infoHeight))
 
-		// Add inspector if visible
-		if layout.inspectorWidth > 0 {
-			m.Inspector.SetSize(layout.inspectorWidth, contentHeight)
-			m.Inspector.SetItem(currentCol.SelectedItem())
-			columnViews = append(columnViews, m.Inspector.View())
+		default:
+			// Tab 1: library list (full height)
+			// Tab 2: shows/movies column split 33/66
+			// Tab 3: episodes/season-episodes column split 33/66
+			libCol := m.ColumnStack.Get(topIdx - 2)
+			if layout.grandparentWidth > 0 {
+				libCol.SetSize(layout.grandparentWidth, contentHeight)
+			} else {
+				libCol.SetSize(layout.parentWidth, contentHeight)
+			}
+			columnViews = append(columnViews, libCol.View())
+
+			if layout.parentWidth > 0 && layout.grandparentWidth == 0 {
+				// Only show parent (shows list) when grandparent is not shown
+				parentCol := m.ColumnStack.Get(topIdx - 1)
+				columnViews = append(columnViews, m.renderSplitColumn(parentCol, layout.parentWidth, listHeight, infoHeight))
+			} else if layout.grandparentWidth > 0 {
+				parentCol := m.ColumnStack.Get(topIdx - 1)
+				parentCol.SetSize(layout.parentWidth, contentHeight)
+				columnViews = append(columnViews, parentCol.View())
+			}
+
+			activeCol := m.ColumnStack.Get(topIdx)
+			columnViews = append(columnViews, m.renderSplitColumn(activeCol, layout.activeWidth, listHeight, infoHeight))
 		}
 
 		content = lipgloss.JoinHorizontal(lipgloss.Top, columnViews...)
@@ -115,6 +138,21 @@ func (m Model) View() string {
 	}
 
 	return view
+}
+
+// renderSplitColumn renders a content column as a 33/66 vertical split:
+// top = list (listHeight), bottom = info pane for selected item (infoHeight).
+func (m Model) renderSplitColumn(col *components.ListColumn, colWidth, listHeight, infoHeight int) string {
+	col.SetSize(colWidth, listHeight)
+	listView := col.View()
+
+	// Info pane: fresh inspector for this column's selected item
+	insp := components.NewInspector()
+	insp.SetSize(colWidth, infoHeight)
+	insp.SetItem(col.SelectedItem())
+	infoView := insp.View()
+
+	return lipgloss.JoinVertical(lipgloss.Left, listView, infoView)
 }
 
 // renderFooter renders a single-line minimal footer
