@@ -180,6 +180,8 @@ func (i Inspector) renderInspector(width int) inspectorContent {
 		return i.renderShowInspector(*v, width)
 	case *domain.Season:
 		return inspectorContent{header: i.renderSeasonInspector(*v, width)}
+	case *SeasonHeader:
+		return inspectorContent{header: i.renderSeasonInspector(*v.Season, width)}
 	case *domain.Library:
 		return inspectorContent{body: i.renderLibraryInspector(v, width)}
 	case domain.Library:
@@ -231,8 +233,7 @@ func renderMediaHeader(item domain.MediaItem, width int) string {
 	b.WriteString(styles.DimStyle.Render(strings.Join(metaParts, " · ")))
 	b.WriteString("\n")
 
-	// Rating and watch status grouped left
-	var statusParts []string
+	// Rating
 	if item.Rating > 0 {
 		ratingText := fmt.Sprintf("★ %.1f", item.Rating)
 		var ratingStyle lipgloss.Style
@@ -244,23 +245,52 @@ func renderMediaHeader(item domain.MediaItem, width int) string {
 		default:
 			ratingStyle = lipgloss.NewStyle().Foreground(styles.Red)
 		}
-		statusParts = append(statusParts, ratingStyle.Render(ratingText))
+		b.WriteString(ratingStyle.Render(ratingText))
+		b.WriteString("\n")
 	}
 
+	// Watch progress bar
+	barWidth := width - 2
+	if barWidth > 40 {
+		barWidth = 40
+	}
+	if barWidth < 4 {
+		barWidth = 4
+	}
 	switch item.WatchStatus() {
 	case domain.WatchStatusWatched:
-		statusParts = append(statusParts, styles.PlayedStyle.Render("✓ Watched"))
+		b.WriteString(styles.PlayedStyle.Render("✓ Watched"))
 	case domain.WatchStatusInProgress:
-		statusParts = append(statusParts, styles.InProgressStyle.Render(fmt.Sprintf("◐ %s", formatDuration(item.ViewOffset))))
+		var pct float64
+		if item.Duration > 0 {
+			pct = float64(item.ViewOffset) / float64(item.Duration) * 100
+		}
+		bar := styles.RenderProgressBar(pct, barWidth)
+		b.WriteString(bar)
+		b.WriteString("\n")
+		b.WriteString(styles.InProgressStyle.Render(fmt.Sprintf("◐ %.0f%% watched (%s remaining)", pct, formatRemainingDuration(item))))
 	case domain.WatchStatusUnwatched:
-		statusParts = append(statusParts, styles.DimStyle.Render("○ Unwatched"))
-	}
-
-	if len(statusParts) > 0 {
-		b.WriteString(strings.Join(statusParts, "   "))
+		b.WriteString(styles.DimStyle.Render("○ Unwatched"))
 	}
 
 	return strings.TrimRight(b.String(), "\n")
+}
+
+// formatRemainingDuration returns the remaining watch time as a formatted string.
+func formatRemainingDuration(item domain.MediaItem) string {
+	if item.Duration <= 0 || item.ViewOffset <= 0 {
+		return item.FormattedDuration()
+	}
+	remaining := item.Duration - item.ViewOffset
+	if remaining < 0 {
+		remaining = 0
+	}
+	h := int(remaining.Hours())
+	m := int(remaining.Minutes()) % 60
+	if h > 0 {
+		return fmt.Sprintf("%dh %dm", h, m)
+	}
+	return fmt.Sprintf("%dm", m)
 }
 
 func renderMediaBody(item domain.MediaItem, width int) string {
