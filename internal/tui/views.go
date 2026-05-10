@@ -55,10 +55,17 @@ func (m Model) View() string {
 
 		switch stackLen {
 		case 1:
-			// Root: library list, full height — no info pane
+			// Root: library list
 			libCol := m.ColumnStack.Get(0)
 			libCol.SetSize(layout.activeWidth, contentHeight)
 			columnViews = append(columnViews, libCol.View())
+
+			// Show horizontal inspector for root libraries if enabled
+			if layout.inspectorWidth > 0 {
+				m.Inspector.SetSize(layout.inspectorWidth, contentHeight)
+				m.Inspector.SetItem(libCol.SelectedItem())
+				columnViews = append(columnViews, m.Inspector.View())
+			}
 
 		case 2:
 			// Tab 1: library list (full height)
@@ -82,14 +89,9 @@ func (m Model) View() string {
 			}
 			columnViews = append(columnViews, libCol.View())
 
-			if layout.parentWidth > 0 && layout.grandparentWidth == 0 {
-				// Only show parent (shows list) when grandparent is not shown
+			if layout.parentWidth > 0 {
 				parentCol := m.ColumnStack.Get(topIdx - 1)
 				columnViews = append(columnViews, m.renderSplitColumn(parentCol, layout.parentWidth, listHeight, infoHeight))
-			} else if layout.grandparentWidth > 0 {
-				parentCol := m.ColumnStack.Get(topIdx - 1)
-				parentCol.SetSize(layout.parentWidth, contentHeight)
-				columnViews = append(columnViews, parentCol.View())
 			}
 
 			activeCol := m.ColumnStack.Get(topIdx)

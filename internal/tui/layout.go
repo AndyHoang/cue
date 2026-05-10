@@ -19,12 +19,10 @@ func (m Model) calculateColumnLayout(availableWidth int) columnLayout {
 	}
 
 	switch stackLen {
-	case 0:
-		// Empty stack - shouldn't happen
-		layout.activeWidth = availableWidth
-
 	case 1:
 		// Root level: single column (Libraries)
+		// We can still show the horizontal inspector here if desired,
+		// as there's no vertical split for the library list itself.
 		if m.ShowInspector {
 			layout.activeWidth = applyMin(availableWidth * RootColumnPercent / 100)
 			layout.inspectorWidth = availableWidth - layout.activeWidth
@@ -33,31 +31,17 @@ func (m Model) calculateColumnLayout(availableWidth int) columnLayout {
 		}
 
 	case 2:
-		// 2 columns in stack
-		if m.ShowInspector {
-			// [Parent | Active | Inspector]
-			layout.parentWidth = applyMin(availableWidth * ParentColumnPercent3 / 100)
-			layout.inspectorWidth = applyMin(availableWidth * InspectorColumnPercent / 100)
-			layout.activeWidth = applyMin(availableWidth - layout.parentWidth - layout.inspectorWidth)
-		} else {
-			// [Parent | Active]
-			layout.parentWidth = applyMin(availableWidth * ParentColumnPercent2 / 100)
-			layout.activeWidth = applyMin(availableWidth - layout.parentWidth)
-		}
+		// 2 columns: [Library (Full) | Content (Split)]
+		// No horizontal inspector — room is used for the two columns.
+		layout.parentWidth = applyMin(availableWidth * 30 / 100)
+		layout.activeWidth = availableWidth - layout.parentWidth
 
 	default:
-		// 3+ columns in stack
-		if m.ShowInspector {
-			// [Parent | Active | Inspector]
-			layout.parentWidth = applyMin(availableWidth * ParentColumnPercent3 / 100)
-			layout.inspectorWidth = applyMin(availableWidth * InspectorColumnPercent / 100)
-			layout.activeWidth = applyMin(availableWidth - layout.parentWidth - layout.inspectorWidth)
-		} else {
-			// [Grandparent | Parent | Active]
-			layout.grandparentWidth = applyMin(availableWidth * GrandparentColumnPercent / 100)
-			layout.parentWidth = applyMin(availableWidth * ParentColumnPercent2 / 100)
-			layout.activeWidth = applyMin(availableWidth - layout.grandparentWidth - layout.parentWidth)
-		}
+		// 3+ columns: [Library (Full) | Parent (Split/Full) | Active (Split)]
+		// Proportions: 25% / 35% / 40%
+		layout.grandparentWidth = applyMin(availableWidth * 25 / 100)
+		layout.parentWidth = applyMin(availableWidth * 35 / 100)
+		layout.activeWidth = availableWidth - layout.grandparentWidth - layout.parentWidth
 	}
 
 	return layout

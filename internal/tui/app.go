@@ -143,6 +143,7 @@ type Model struct {
 	// UI preferences from config
 	UIConfig  config.UIConfig
 	AppConfig *config.Config
+	Version   string
 
 	pendingPlayback *domain.MediaItem
 }
@@ -156,6 +157,7 @@ func NewModel(
 	playbackSvc *player.Service,
 	appConfig *config.Config,
 	uiConfig config.UIConfig,
+	version string,
 ) Model {
 	return Model{
 		State:           StateBrowsing,
@@ -164,15 +166,16 @@ func NewModel(
 		PlaylistService: playlistSvc,
 		SearchSvc:       searchSvc,
 		PlaybackSvc:     playbackSvc,
+		AppConfig:       appConfig,
+		UIConfig:        uiConfig,
+		Version:         version,
 		ColumnStack:     NewColumnStack(),
 		Inspector:       components.NewInspector(),
 		GlobalSearch:    components.NewGlobalSearch(),
 		PlaylistModal:   components.NewPlaylistModal(),
 		InputModal:      components.NewInputModal(),
 		LibraryStates:   make(map[string]components.LibrarySyncState),
-		ShowInspector:   false, // Inspector hidden by default - show 3 nav columns
-		UIConfig:        uiConfig,
-		AppConfig:       appConfig,
+		ShowInspector:   true, // Library list (Tab 1) shows horizontal inspector by default
 	}
 }
 

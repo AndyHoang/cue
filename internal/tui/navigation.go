@@ -450,7 +450,12 @@ func (m *Model) drillVirtualLibrary(v domain.Library, cursor int) *drillResult {
 			items = m.LibraryService.SmartFiltered(key, 0)
 			contentID = v.ID
 		} else {
-			// Unknown virtual ID — do nothing rather than sending a bad API request
+			// If it's a real library (not a virtual/cue/profile entry), return nil
+			// so the caller (drillSelected) can handle it as a standard media library.
+			if v.Type != "cue" && v.Type != "profile" && !strings.HasPrefix(v.ID, "__") {
+				return nil
+			}
+			// Unknown or no-op virtual ID — do nothing rather than sending a bad API request
 			return &drillResult{AwaitKind: AwaitNone}
 		}
 	}
