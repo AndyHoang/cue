@@ -12,4 +12,5 @@ const (
 	ColumnTypeEpisodes
 	ColumnTypePlaylists
 	ColumnTypePlaylistItems
+	ColumnTypeSeasonEpisodes // Collapsible seasons + episodes (Tab 3 for TV shows)
 )

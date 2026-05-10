@@ -70,6 +70,9 @@ type ListColumn struct {
 
 	// Content identity for race condition prevention
 	contentID string
+
+	// Season groups for ColumnTypeSeasonEpisodes
+	seasonGroups []SeasonGroup
 }
 
 // NewListColumn creates a new list column with the given type and title
@@ -516,6 +519,110 @@ func (c *ListColumn) ToggleFilter() {
 	c.recalcMaxVisible()
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Season group management (ColumnTypeSeasonEpisodes)
+// ──────────────────────────────────────────────────────────────────────────────
+
+// SetSeasonGroups replaces all season groups and rebuilds the visible item list.
+func (c *ListColumn) SetSeasonGroups(groups []SeasonGroup) {
+	c.seasonGroups = groups
+	c.loading = false
+	c.rebuildSeasonItems()
+}
+
+// AddSeasonEpisodes inserts loaded episodes into the matching season group and rebuilds.
+func (c *ListColumn) AddSeasonEpisodes(seasonID string, eps []*domain.MediaItem) {
+	for i := range c.seasonGroups {
+		if c.seasonGroups[i].Header.Season.ID == seasonID {
+			c.seasonGroups[i].Episodes = eps
+			c.seasonGroups[i].Loaded = true
+			c.seasonGroups[i].Header.Loading = false
+			break
+		}
+	}
+	c.rebuildSeasonItems()
+}
+
+// ExpandFirstSeason expands the first season group.
+// Returns (needsLoad, seasonID) — caller issues LoadEpisodesCmd when needsLoad is true.
+func (c *ListColumn) ExpandFirstSeason() (needsLoad bool, seasonID string) {
+	if len(c.seasonGroups) == 0 {
+		return false, ""
+	}
+	g := &c.seasonGroups[0]
+	g.Header.Expanded = true
+	if !g.Loaded {
+		g.Header.Loading = true
+		c.rebuildSeasonItems()
+		return true, g.Header.Season.ID
+	}
+	c.rebuildSeasonItems()
+	return false, ""
+}
+
+// ToggleSelectedSeason toggles the expand/collapse state of the currently selected season header.
+// Returns (needsLoad, seasonID) — caller issues LoadEpisodesCmd when needsLoad is true.
+func (c *ListColumn) ToggleSelectedSeason() (needsLoad bool, seasonID string) {
+	count := c.ItemCount()
+	if c.cursor >= count {
+		return false, ""
+	}
+	idx := c.mapIndex(c.cursor)
+	if idx >= len(c.items) {
+		return false, ""
+	}
+	header, ok := c.items[idx].(*SeasonHeader)
+	if !ok {
+		return false, ""
+	}
+	header.Expanded = !header.Expanded
+	if header.Expanded {
+		// Find which group and check if episodes need loading
+		for i := range c.seasonGroups {
+			if c.seasonGroups[i].Header == header && !c.seasonGroups[i].Loaded {
+				c.seasonGroups[i].Header.Loading = true
+			c.rebuildSeasonItems()
+				return true, header.Season.ID
+			}
+		}
+	}
+	c.rebuildSeasonItems()
+	return false, ""
+}
+
+// SelectedSeasonHeader returns the SeasonHeader under the cursor, or nil.
+func (c *ListColumn) SelectedSeasonHeader() *SeasonHeader {
+	count := c.ItemCount()
+	if c.cursor >= count {
+		return nil
+	}
+	idx := c.mapIndex(c.cursor)
+	if idx >= len(c.items) {
+		return nil
+	}
+	h, _ := c.items[idx].(*SeasonHeader)
+	return h
+}
+
+// rebuildSeasonItems flattens seasonGroups into the visible items slice.
+func (c *ListColumn) rebuildSeasonItems() {
+	var items []domain.ListItem
+	for i := range c.seasonGroups {
+		g := &c.seasonGroups[i]
+		items = append(items, g.Header)
+		if g.Header.Expanded {
+			for _, ep := range g.Episodes {
+				items = append(items, ep)
+			}
+		}
+	}
+	c.items = items
+	if c.cursor >= len(items) && len(items) > 0 {
+		c.cursor = 0
+		c.offset = 0
+	}
+}
+
 // IsFiltering returns true if filter mode is active
 func (c *ListColumn) IsFiltering() bool {
 	return c.filterActive
@@ -734,6 +841,14 @@ func (c *ListColumn) renderItem(idx int, selected bool, width int) string {
 		return c.renderPlaylistMediaItem(*item.(*domain.MediaItem), selected, width)
 	case ColumnTypeMixed:
 		return c.renderMixedItem(item, selected, width)
+	case ColumnTypeSeasonEpisodes:
+		switch v := item.(type) {
+		case *SeasonHeader:
+			return c.renderSeasonHeaderItem(v, selected, width)
+		case *domain.MediaItem:
+			return c.renderEpisodeItem(*v, selected, width)
+		}
+		return ""
 	default:
 		return ""
 	}
@@ -844,6 +959,47 @@ func (c *ListColumn) renderShowItem(show domain.Show, selected bool, width int) 
 		{Text: " " + title, Foreground: nil},
 	}, tag, width)
 
+	return styles.RenderListRow(parts, selected, width)
+}
+
+func (c *ListColumn) renderSeasonHeaderItem(h *SeasonHeader, selected bool, width int) string {
+	var arrow string
+	orange := styles.PlexOrange
+	if h.Loading {
+		arrow = styles.SpinnerFrames[c.spinnerFrame%len(styles.SpinnerFrames)]
+	} else if h.Expanded {
+		arrow = "▼"
+	} else {
+		arrow = "▶"
+	}
+
+	title := h.GetTitle()
+	if h.Season.SeasonNum == 0 {
+		title = "Specials"
+	} else {
+		// Full season name e.g. "S01  Season 1"
+		if h.Season.Title != "" && h.Season.Title != fmt.Sprintf("Season %d", h.Season.SeasonNum) {
+			title = fmt.Sprintf("%s  %s", title, h.Season.Title)
+		} else {
+			title = fmt.Sprintf("%s  Season %d", title, h.Season.SeasonNum)
+		}
+	}
+
+	watched := h.Season.EpisodeCount - h.Season.UnwatchedCount
+	progStr := fmt.Sprintf("%d/%d", watched, h.Season.EpisodeCount)
+	dimGray := styles.DimGray
+
+	availableForTitle := width - 4 - len(arrow) - 1 - len(progStr) - 1
+	if availableForTitle < 5 {
+		availableForTitle = 5
+	}
+	title = styles.Truncate(title, availableForTitle)
+
+	parts := []styles.RowPart{
+		{Text: arrow + " ", Foreground: &orange},
+		{Text: title, Foreground: nil},
+		{Text: strings.Repeat(" ", max(1, width-4-len(arrow)-1-len(title)-len(progStr))) + progStr, Foreground: &dimGray},
+	}
 	return styles.RenderListRow(parts, selected, width)
 }
 
