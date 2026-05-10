@@ -119,9 +119,15 @@ func (m Model) View() string {
 
 // renderFooter renders a single-line minimal footer
 func (m Model) renderFooter() string {
-	// Left side: spinner + status when loading or status message active
+	// Left side: now-playing takes priority, then loading/status
 	var left string
-	if m.Loading {
+	if m.isPlayingTitle != "" {
+		// Pulsing indicator via spinner frame
+		frames := []string{"▶", "▷"}
+		icon := styles.AccentStyle.Render(frames[m.SpinnerFrame/5%len(frames)])
+		title := styles.Truncate(m.isPlayingTitle, 40)
+		left = icon + " " + styles.DimStyle.Render("Now Playing: "+title)
+	} else if m.Loading {
 		statusText := "Loading..."
 
 		if m.MultiLibSync {

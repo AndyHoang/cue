@@ -118,11 +118,12 @@ type Model struct {
 	Height int
 
 	// UI state
-	StatusMsg     string
-	StatusIsErr   bool
-	Loading       bool
-	SpinnerFrame  int
-	ShowInspector bool // Toggle inspector visibility (default true)
+	StatusMsg      string
+	StatusIsErr    bool
+	Loading        bool
+	SpinnerFrame   int
+	ShowInspector  bool   // Toggle inspector visibility (default true)
+	isPlayingTitle string // Non-empty while a player process is running
 
 	// Sync state
 	LibraryStates map[string]components.LibrarySyncState // Tracks progress per library
@@ -361,18 +362,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case PlaybackStartedMsg:
-		m.StatusMsg = "Playing: " + msg.Item.Title
+		m.isPlayingTitle = msg.Item.Title
+		m.StatusMsg = ""
 		return m, tea.Batch(
 			WaitForPlaybackCmd(msg.Handle.ResultCh),
 			ListenForPlaybackStatusCmd(msg.Handle.StatusCh),
 		)
 
 	case PlaybackStatusMsg:
-		m.StatusMsg = msg.Message
-		// Keep listening for more status updates
+		// Keep listening for more status updates — status displayed via isPlayingTitle
 		return m, ListenForPlaybackStatusCmd(msg.StatusCh)
 
 	case PlaybackFinishedMsg:
+		m.isPlayingTitle = ""
 		if msg.Err != nil {
 			m.StatusMsg = "Playback error: " + msg.Err.Error()
 			m.StatusIsErr = true
