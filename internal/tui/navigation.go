@@ -419,7 +419,11 @@ func (m *Model) drillVirtualLibrary(v domain.Library, cursor int) *drillResult {
 		m.StatusMsg = "Cache cleared"
 		return &drillResult{AwaitKind: AwaitNone}
 	default:
-		if strings.HasPrefix(v.ID, "__profile_") && v.ID != "__profile_current__" {
+		// __profile_current__ is display-only — no action on drill
+		if v.ID == "__profile_current__" {
+			return &drillResult{AwaitKind: AwaitNone}
+		}
+		if strings.HasPrefix(v.ID, "__profile_") {
 			name := strings.TrimPrefix(v.ID, "__profile_")
 			if m.AppConfig != nil {
 				m.AppConfig.CurrentProfile = name
@@ -436,11 +440,17 @@ func (m *Model) drillVirtualLibrary(v domain.Library, cursor int) *drillResult {
 			}
 			return &drillResult{AwaitKind: AwaitNone}
 		}
+		// Config/cache read-only entries have no drill action
+		if v.ID == "__config_player__" || v.ID == "__config_os__" ||
+			v.ID == "__cache_libraries__" || v.ID == "__cache_queue__" || v.ID == "__cache_refresh__" {
+			return &drillResult{AwaitKind: AwaitNone}
+		}
 		if key := filterKey(v.ID); key != "" {
 			items = m.LibraryService.SmartFiltered(key, 0)
 			contentID = v.ID
 		} else {
-			return nil
+			// Unknown virtual ID — do nothing rather than sending a bad API request
+			return &drillResult{AwaitKind: AwaitNone}
 		}
 	}
 
