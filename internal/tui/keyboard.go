@@ -188,6 +188,12 @@ func (m Model) handleDrillIn() (tea.Model, tea.Cmd) {
 	if top == nil {
 		return m, nil
 	}
+
+	// For the collapsible season+episode column, l acts like Enter
+	if top.ColumnType() == components.ColumnTypeSeasonEpisodes {
+		return m.handleEnter()
+	}
+
 	if !top.CanDrillInto() {
 		if item := top.SelectedMediaItem(); item != nil {
 			return m.playOrConfirmResume(item)
@@ -203,6 +209,25 @@ func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 	if top == nil {
 		return m, nil
 	}
+
+	// In the collapsible season+episode column, Enter on a season header toggles it
+	if top.ColumnType() == components.ColumnTypeSeasonEpisodes {
+		if top.SelectedSeasonHeader() != nil {
+			needsLoad, seasonID := top.ToggleSelectedSeason()
+			if needsLoad {
+				m.Loading = true
+				return m, LoadEpisodesCmd(m.LibraryService, m.currentLibID, m.currentShowID, seasonID)
+			}
+			m.updateInspector()
+			return m, nil
+		}
+		// Cursor is on an episode — play it
+		if item := top.SelectedMediaItem(); item != nil {
+			return m.playOrConfirmResume(item)
+		}
+		return m, nil
+	}
+
 	if top.CanDrillInto() {
 		return m.drillIntoSelection()
 	}

@@ -327,11 +327,32 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		// Update top column with seasons
-		if top := m.ColumnStack.Top(); top != nil {
-			top.SetItems(msg.Seasons)
+		top := m.ColumnStack.Top()
+		if top == nil {
+			return m, nil
 		}
 
+		if top.ColumnType() == components.ColumnTypeSeasonEpisodes {
+			// New path: build collapsible season groups
+			groups := make([]components.SeasonGroup, len(msg.Seasons))
+			for i, s := range msg.Seasons {
+				groups[i] = components.SeasonGroup{
+					Header: &components.SeasonHeader{Season: s},
+				}
+			}
+			top.SetSeasonGroups(groups)
+			m.updateInspector()
+
+			// Auto-expand first season and kick off its episode load
+			if needsLoad, seasonID := top.ExpandFirstSeason(); needsLoad {
+				m.Loading = true
+				return m, LoadEpisodesCmd(m.LibraryService, m.currentLibID, m.currentShowID, seasonID)
+			}
+			return m, nil
+		}
+
+		// Classic path: populate seasons column
+		top.SetItems(msg.Seasons)
 		m.updateInspector()
 
 		// Advance nav plan if waiting for this load
@@ -343,16 +364,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case EpisodesLoadedMsg:
 		m.Loading = false
 
-		// Validate content ID to prevent race condition
-		if !m.validateContentID(msg.SeasonID) {
+		top := m.ColumnStack.Top()
+		if top == nil {
 			return m, nil
 		}
 
-		// Update top column with episodes
-		if top := m.ColumnStack.Top(); top != nil {
-			top.SetItems(msg.Episodes)
+		if top.ColumnType() == components.ColumnTypeSeasonEpisodes {
+			// New path: insert episodes into the matching season group
+			top.AddSeasonEpisodes(msg.SeasonID, msg.Episodes)
+			m.updateInspector()
+			return m, nil
 		}
 
+		// Classic path: validate and populate a standalone episodes column
+		if !m.validateContentID(msg.SeasonID) {
+			return m, nil
+		}
+		top.SetItems(msg.Episodes)
 		m.updateInspector()
 
 		// Advance nav plan if waiting for this load

@@ -287,20 +287,21 @@ func (m *Model) drillSelected() *drillResult {
 
 		libID := m.currentLibID
 		showID := v.ID
-		spec := columnLoadSpec{
-			colType:   components.ColumnTypeSeasons,
-			name:      v.Title,
-			awaitKind: AwaitSeasons,
-			awaitID:   v.ID,
-			getCached: func() interface{} {
-				if c, ok := m.Store.GetSeasons(libID, showID); ok {
-					return c
-				}
-				return nil
-			},
-			loadCmd: LoadSeasonsCmd(m.LibraryService, libID, showID),
+
+		// Push a collapsible season+episode column directly (Tab 3 for TV shows).
+		// Seasons are fetched first; episodes are loaded lazily per season.
+		col := components.NewListColumn(components.ColumnTypeSeasonEpisodes, v.Title)
+		col.SetShowWatchStatus(m.UIConfig.ShowWatchStatus)
+		col.SetContentID(v.ID) // contentID = showID so SeasonsLoadedMsg can validate
+		col.SetLoading(true)
+		m.ColumnStack.Push(col, cursor)
+		m.Loading = true
+		m.updateLayout()
+		return &drillResult{
+			AwaitKind: AwaitSeasons,
+			AwaitID:   showID,
+			Cmd:       LoadSeasonsCmd(m.LibraryService, libID, showID),
 		}
-		return m.pushAndLoadColumn(spec, cursor)
 
 	case *domain.Season:
 		title := v.ShowTitle
