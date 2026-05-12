@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -40,6 +39,13 @@ var linuxPlayers = []PlayerDef{
 
 var darwinPlayers = []PlayerDef{
 	{Binary: "iina", SeekFlag: "--mpv-start=%d"},
+	{Binary: "mpv", SeekFlag: "--start=%d"},
+	{Binary: "vlc", SeekFlag: "--start-time=%d"},
+}
+
+// Windows detection looks up by base name; exec.LookPath consults PATHEXT
+// so "mpv" resolves to mpv.exe (e.g. scoop's shim).
+var windowsPlayers = []PlayerDef{
 	{Binary: "mpv", SeekFlag: "--start=%d"},
 	{Binary: "vlc", SeekFlag: "--start-time=%d"},
 }
@@ -141,6 +147,8 @@ func (l *Launcher) detectPlayer() (PlayerDef, bool) {
 		candidates = darwinPlayers
 	case "linux":
 		candidates = linuxPlayers
+	case "windows":
+		candidates = windowsPlayers
 	default:
 		return PlayerDef{}, false
 	}
@@ -160,7 +168,7 @@ func (l *Launcher) execPlayer(player PlayerDef, media domain.PlayableMedia, offs
 
 	// Enable IPC for mpv
 	if player.Binary == "mpv" {
-		ipcSocket = filepath.Join(os.TempDir(), fmt.Sprintf("cue-mpv-%d.sock", time.Now().UnixNano()))
+		ipcSocket = newMPVSocketPath()
 		args = append(args, "--input-ipc-server="+ipcSocket)
 	}
 
@@ -228,10 +236,13 @@ func (l *Launcher) launchConfigured(media domain.PlayableMedia, offsetSecs int) 
 		}
 	}
 
-	// For manual config, we check if it's mpv to enable IPC
+	// For manual config, we check if it's mpv to enable IPC. Match by base
+	// name (without extension) so Windows variants like "mpv.exe" and paths
+	// with backslashes (`C:\tools\mpv.exe`) are recognised too.
 	var ipcSocket string
-	if l.command == "mpv" || strings.HasSuffix(l.command, "/mpv") {
-		ipcSocket = filepath.Join(os.TempDir(), fmt.Sprintf("cue-mpv-%d.sock", time.Now().UnixNano()))
+	bin := strings.ToLower(strings.TrimSuffix(filepath.Base(l.command), filepath.Ext(l.command)))
+	if bin == "mpv" {
+		ipcSocket = newMPVSocketPath()
 		args = append([]string{"--input-ipc-server=" + ipcSocket}, args...)
 	}
 
@@ -250,6 +261,11 @@ func (l *Launcher) lookupSeekFlag(binary string) string {
 		}
 	}
 	for _, p := range darwinPlayers {
+		if p.Binary == binary {
+			return p.SeekFlag
+		}
+	}
+	for _, p := range windowsPlayers {
 		if p.Binary == binary {
 			return p.SeekFlag
 		}
@@ -280,6 +296,11 @@ func (l *Launcher) launchDefault(url string) (*exec.Cmd, error) {
 	switch runtime.GOOS {
 	case "darwin":
 		cmd = exec.Command("open", url)
+	case "windows":
+		// `start` is a cmd.exe builtin, not a standalone exe. The empty "" is
+		// a window title — required because `start` treats the first quoted
+		// arg as a title and would otherwise swallow the URL.
+		cmd = exec.Command("cmd", "/c", "start", "", url)
 	default:
 		// Linux and other Unix-like systems
 		cmd = exec.Command("xdg-open", url)

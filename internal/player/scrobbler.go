@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
 	"os/exec"
 	"time"
 
@@ -54,11 +53,7 @@ func (s *Scrobbler) Monitor(ctx context.Context, cmd *exec.Cmd, ipcSocket string
 	go func() {
 		defer close(resCh)
 		defer close(statusCh)
-		defer func() {
-			if ipcSocket != "" {
-				_ = os.Remove(ipcSocket)
-			}
-		}()
+		defer removeMPVSocket(ipcSocket)
 
 		var lastPosMs int64
 		var mpv *mpvConn

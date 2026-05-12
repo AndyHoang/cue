@@ -1,5 +1,6 @@
 # Binary
 /cue
+/cue.exe
 
 # Build artifacts
 combine-go.sh
