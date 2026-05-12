@@ -449,7 +449,7 @@ func (c *ListColumn) SelectedSeason() *domain.Season {
 // SelectedMediaItem returns the selected media item (if in movies/episodes/playlist items/mixed column)
 func (c *ListColumn) SelectedMediaItem() *domain.MediaItem {
 	switch c.columnType {
-	case ColumnTypeMovies, ColumnTypeEpisodes, ColumnTypePlaylistItems:
+	case ColumnTypeMovies, ColumnTypeEpisodes, ColumnTypePlaylistItems, ColumnTypeSeasonEpisodes:
 		item := c.SelectedItem()
 		if item == nil {
 			return nil
@@ -581,7 +581,7 @@ func (c *ListColumn) ToggleSelectedSeason() (needsLoad bool, seasonID string) {
 		for i := range c.seasonGroups {
 			if c.seasonGroups[i].Header == header && !c.seasonGroups[i].Loaded {
 				c.seasonGroups[i].Header.Loading = true
-			c.rebuildSeasonItems()
+				c.rebuildSeasonItems()
 				return true, header.Season.ID
 			}
 		}

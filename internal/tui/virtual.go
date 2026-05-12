@@ -50,10 +50,6 @@ func (m Model) configEntries() []domain.Library {
 	}
 }
 
-func isConfigToggle(id string) bool {
-	return id == "__config_watch__" || id == "__config_counts__"
-}
-
 func (m Model) cacheEntries() []domain.Library {
 	libs := len(m.Libraries)
 	queue := len(m.PlaylistService.QueueItems())

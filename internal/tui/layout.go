@@ -65,6 +65,12 @@ func (m *Model) updateLayout() {
 	layout := m.calculateColumnLayout(m.Width)
 	topIdx := stackLen - 1
 
+	// Calculate list/info heights for split view
+	listHeight := contentHeight / 3
+	if listHeight < 4 {
+		listHeight = 4
+	}
+
 	// Apply calculated sizes to components
 	switch stackLen {
 	case 1:
@@ -74,20 +80,20 @@ func (m *Model) updateLayout() {
 		}
 
 	case 2:
-		m.ColumnStack.Get(topIdx-1).SetSize(layout.parentWidth, contentHeight)
-		m.ColumnStack.Get(topIdx).SetSize(layout.activeWidth, contentHeight)
-		if m.ShowInspector {
-			m.Inspector.SetSize(layout.inspectorWidth, contentHeight)
-		}
+		m.ColumnStack.Get(0).SetSize(layout.parentWidth, contentHeight)
+		// Active column is split in View(), so updateLayout should use listHeight
+		m.ColumnStack.Get(1).SetSize(layout.activeWidth, listHeight)
 
 	default: // 3+ columns
 		if layout.grandparentWidth > 0 {
 			m.ColumnStack.Get(topIdx-2).SetSize(layout.grandparentWidth, contentHeight)
 		}
-		m.ColumnStack.Get(topIdx-1).SetSize(layout.parentWidth, contentHeight)
-		m.ColumnStack.Get(topIdx).SetSize(layout.activeWidth, contentHeight)
-		if m.ShowInspector {
-			m.Inspector.SetSize(layout.inspectorWidth, contentHeight)
+		// Parent column split vs full depends on View() logic
+		if layout.grandparentWidth > 0 {
+			m.ColumnStack.Get(topIdx-1).SetSize(layout.parentWidth, contentHeight)
+		} else {
+			m.ColumnStack.Get(topIdx-1).SetSize(layout.parentWidth, listHeight)
 		}
+		m.ColumnStack.Get(topIdx).SetSize(layout.activeWidth, listHeight)
 	}
 }

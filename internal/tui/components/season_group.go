@@ -41,13 +41,13 @@ func (h *SeasonHeader) GetSortTitle() string {
 	return fmt.Sprintf("%03d", h.Season.SeasonNum)
 }
 
-func (h *SeasonHeader) GetDuration() time.Duration  { return 0 }
-func (h *SeasonHeader) GetRating() float64          { return 0 }
-func (h *SeasonHeader) GetYear() int                { return 0 }
-func (h *SeasonHeader) GetAddedAt() int64           { return 0 }
-func (h *SeasonHeader) GetUpdatedAt() int64         { return 0 }
-func (h *SeasonHeader) GetItemType() string         { return "season_header" }
-func (h *SeasonHeader) CanDrillDown() bool          { return false }
+func (h *SeasonHeader) GetDuration() time.Duration { return 0 }
+func (h *SeasonHeader) GetRating() float64         { return 0 }
+func (h *SeasonHeader) GetYear() int               { return 0 }
+func (h *SeasonHeader) GetAddedAt() int64          { return 0 }
+func (h *SeasonHeader) GetUpdatedAt() int64        { return 0 }
+func (h *SeasonHeader) GetItemType() string        { return "season_header" }
+func (h *SeasonHeader) CanDrillDown() bool         { return false }
 
 func (h *SeasonHeader) GetWatchStatus() domain.WatchStatus {
 	return h.Season.WatchStatus()

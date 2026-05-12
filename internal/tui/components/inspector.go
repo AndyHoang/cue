@@ -507,9 +507,10 @@ func (i Inspector) renderPlaylistInspector(playlist domain.Playlist, width int) 
 
 	// Playlist type
 	typeLabel := "Video"
-	if playlist.PlaylistType == "audio" {
+	switch playlist.PlaylistType {
+	case "audio":
 		typeLabel = "Audio"
-	} else if playlist.PlaylistType == "photo" {
+	case "photo":
 		typeLabel = "Photo"
 	}
 	b.WriteString(styles.DimStyle.Render(fmt.Sprintf("Type: %s Playlist", typeLabel)))
@@ -553,34 +554,6 @@ func splitLines(s string) []string {
 		return nil
 	}
 	return strings.Split(s, "\n")
-}
-
-// formatDuration formats a duration as HH:MM:SS or MM:SS
-func formatDuration(d interface{}) string {
-	var totalSeconds int64
-
-	switch v := d.(type) {
-	case int64:
-		totalSeconds = v / 1000 // assuming milliseconds
-	case int:
-		totalSeconds = int64(v) / 1000
-	default:
-		// Try to handle time.Duration
-		if dur, ok := d.(interface{ Seconds() float64 }); ok {
-			totalSeconds = int64(dur.Seconds())
-		} else {
-			return "00:00"
-		}
-	}
-
-	hours := totalSeconds / 3600
-	minutes := (totalSeconds % 3600) / 60
-	seconds := totalSeconds % 60
-
-	if hours > 0 {
-		return fmt.Sprintf("%d:%02d:%02d", hours, minutes, seconds)
-	}
-	return fmt.Sprintf("%02d:%02d", minutes, seconds)
 }
 
 // wordWrap wraps text to the specified width

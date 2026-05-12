@@ -44,6 +44,9 @@ func (m Model) View() string {
 	} else {
 		topIdx := stackLen - 1
 
+		// Only split vertically if we have enough height
+		canSplit := contentHeight >= 15
+
 		// List-height for content columns: 33% of available height
 		listHeight := contentHeight / 3
 		if listHeight < 4 {
@@ -69,18 +72,23 @@ func (m Model) View() string {
 
 		case 2:
 			// Tab 1: library list (full height)
-			// Tab 2: content column split 33/66
+			// Tab 2: content column (split 33/66 or full)
 			libCol := m.ColumnStack.Get(0)
 			libCol.SetSize(layout.parentWidth, contentHeight)
 			columnViews = append(columnViews, libCol.View())
 
 			contentCol := m.ColumnStack.Get(1)
-			columnViews = append(columnViews, m.renderSplitColumn(contentCol, layout.activeWidth, listHeight, infoHeight))
+			if canSplit {
+				columnViews = append(columnViews, m.renderSplitColumn(contentCol, layout.activeWidth, listHeight, infoHeight))
+			} else {
+				contentCol.SetSize(layout.activeWidth, contentHeight)
+				columnViews = append(columnViews, contentCol.View())
+			}
 
 		default:
 			// Tab 1: library list (full height)
-			// Tab 2: shows/movies column split 33/66
-			// Tab 3: episodes/season-episodes column split 33/66
+			// Tab 2: shows/movies column (full height if 3-col visible, else split)
+			// Tab 3: episodes/season-episodes column (split)
 			libCol := m.ColumnStack.Get(topIdx - 2)
 			if layout.grandparentWidth > 0 {
 				libCol.SetSize(layout.grandparentWidth, contentHeight)
@@ -89,13 +97,22 @@ func (m Model) View() string {
 			}
 			columnViews = append(columnViews, libCol.View())
 
-			if layout.parentWidth > 0 {
-				parentCol := m.ColumnStack.Get(topIdx - 1)
+			parentCol := m.ColumnStack.Get(topIdx - 1)
+			if layout.grandparentWidth > 0 || !canSplit {
+				// Full height when 3 columns are shown OR not enough height to split
+				parentCol.SetSize(layout.parentWidth, contentHeight)
+				columnViews = append(columnViews, parentCol.View())
+			} else {
 				columnViews = append(columnViews, m.renderSplitColumn(parentCol, layout.parentWidth, listHeight, infoHeight))
 			}
 
 			activeCol := m.ColumnStack.Get(topIdx)
-			columnViews = append(columnViews, m.renderSplitColumn(activeCol, layout.activeWidth, listHeight, infoHeight))
+			if canSplit {
+				columnViews = append(columnViews, m.renderSplitColumn(activeCol, layout.activeWidth, listHeight, infoHeight))
+			} else {
+				activeCol.SetSize(layout.activeWidth, contentHeight)
+				columnViews = append(columnViews, activeCol.View())
+			}
 		}
 
 		content = lipgloss.JoinHorizontal(lipgloss.Top, columnViews...)

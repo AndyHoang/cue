@@ -211,7 +211,7 @@ func (m *PlaylistModal) View() string {
 		if len(itemTitle) > 25 {
 			itemTitle = itemTitle[:22] + "..."
 		}
-		title = "Add to Playlist"
+		title = "Add to Playlist: " + itemTitle
 	}
 	titleLine := styles.ModalTitleStyle.Render(title)
 	lines = append(lines, titleLine)
