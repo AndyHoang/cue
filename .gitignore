@@ -8,6 +8,7 @@ combined.go.txt
 # Screenshots
 *.jpg
 *.png
+!assets/*.png
 
 # Config with secrets
 config.yaml

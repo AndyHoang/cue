@@ -1,19 +1,21 @@
 # Cue
 
-![Cue Demo](demo.gif?v=3)
+![Cue TV Show View](assets/screenshot1.png)
+![Cue Movie View](assets/screenshot2.png)
 
 > A fast terminal client for browsing and playing media from Plex and Jellyfin servers
 
 ## Features
 
--  **Automatic Scrobbling**: Real-time playback progress sync with Plex and Jellyfin.
--  **Auto-Mark Watched**: Items are automatically marked as watched on the server when reaching 90% completion.
--  **Fuzzy search** across your entire library.
--  **Keyboard-first interface** with Vim-style navigation.
--  **Playlist management** and queueing.
--  **Watch status tracking** and smart resume with visual feedback.
--  **Inspector panel** for detailed metadata and progress bars.
--  **Fast, cached browsing** with progressive loading.
+-  **Lightning Fast Browsing**: Instant, keyboard-driven navigation across massive media libraries.
+-  **Unified TV Show View**: Explore seasons and episodes in a single, collapsible tree view.
+-  **Smart Scrobbling**: Real-time playback progress and watch status sync with Plex & Jellyfin.
+-  **Deep Metadata**: View rich details, media info, and progress bars in a dedicated inspector.
+-  **Global Fuzzy Search**: Instantly find any movie or show with just a few keystrokes.
+-  **Vim-Style Navigation**: Efficient, keyboard-first interface using familiar `h/j/k/l` bindings.
+-  **Live Status Display**: Persistent 'Now Playing' and scrobble status in the footer.
+-  **Playlist & Queue**: Manage your watch queue and playlists directly from the terminal.
+-  **High-Performance Caching**: Snappy, progressive loading for a smooth browsing experience.
 
 ## Quick Start
 
@@ -49,8 +51,10 @@ You'll be prompted to enter your server URL. Cue automatically detects whether i
 | `f` | Global search |
 | `/` | Local filter (current column) |
 | `Space` | Manage playlists |
-| `a` | Add/remove from queue |
-| `N` | Play next episode |
+| `a` | Add to / remove from queue |
+| `x` | Delete playlist / remove item |
+| `n` | Create new playlist (in Playlists view) |
+| `N` | Play next unwatched episode |
 | `s` | Sort options |
 | `i` | Toggle inspector panel |
 | `r` / `R` | Refresh library / all |
@@ -67,6 +71,7 @@ Config file: `~/.config/cue/config.yaml` (created on first run).
 ### Playback Scrobbling
 Cue uses **mpv's JSON-RPC IPC** to track real-time progress. For the best experience, ensure `mpv` is installed. When using `mpv`, Cue will:
 - Save your position every 10 seconds.
+- Show "Now Playing: [Title]" in the persistent footer.
 - Show "Saved MM:SS to server" in the status bar.
 - Automatically mark the item as watched on your server once you reach 90% of the duration.
 
