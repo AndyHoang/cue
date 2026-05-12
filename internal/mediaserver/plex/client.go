@@ -343,7 +343,7 @@ func (c *Client) collectExternalSubtitles(part Part) []domain.Subtitle {
 		}
 		// Only external streams expose a fetchable Key. Embedded streams have
 		// no separate URL and the player will discover them in the container.
-		if s.External != 1 && s.Key == "" {
+		if !s.External && s.Key == "" {
 			continue
 		}
 		if s.Key == "" {
@@ -378,8 +378,8 @@ func (c *Client) collectExternalSubtitles(part Part) []domain.Subtitle {
 			Language: lang,
 			Title:    title,
 			Codec:    codec,
-			Default:  s.Default == 1,
-			Forced:   s.Forced == 1,
+			Default:  bool(s.Default),
+			Forced:   bool(s.Forced),
 		})
 	}
 	return subs

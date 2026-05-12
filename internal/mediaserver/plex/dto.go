@@ -1,5 +1,24 @@
 package plex
 
+import "bytes"
+
+// flexBool unmarshals a JSON field that Plex returns as either a boolean
+// (`true`/`false`) or a numeric flag (`1`/`0`). Older Plex servers send the
+// integer form for stream flags like `default`/`forced`/`external`; newer
+// ones send booleans, which broke parsing when the field was typed as int.
+type flexBool bool
+
+func (b *flexBool) UnmarshalJSON(data []byte) error {
+	data = bytes.TrimSpace(data)
+	switch {
+	case bytes.Equal(data, []byte("true")), bytes.Equal(data, []byte("1")):
+		*b = true
+	default:
+		*b = false
+	}
+	return nil
+}
+
 // MediaContainer is the root container for Plex API responses
 type MediaContainer struct {
 	Size                int         `json:"size"`
@@ -129,10 +148,10 @@ type Stream struct {
 	DisplayTitle         string `json:"displayTitle,omitempty"`
 	ExtendedDisplayTitle string `json:"extendedDisplayTitle,omitempty"`
 	Title                string `json:"title,omitempty"`
-	Default              int    `json:"default,omitempty"`
-	Forced               int    `json:"forced,omitempty"`
-	Selected             int    `json:"selected,omitempty"`
-	External             int    `json:"external,omitempty"`
+	Default              flexBool `json:"default,omitempty"`
+	Forced               flexBool `json:"forced,omitempty"`
+	Selected             flexBool `json:"selected,omitempty"`
+	External             flexBool `json:"external,omitempty"`
 }
 
 // APIResponse wraps the MediaContainer for JSON unmarshaling

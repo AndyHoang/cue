@@ -1,44 +1,20 @@
 package player
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"net"
 	"time"
 )
 
-// mpvConn handles JSON-RPC communication with mpv over a Unix socket.
+// mpvConn handles JSON-RPC communication with mpv over its IPC channel.
+// The transport is a Unix domain socket on macOS/Linux and a named pipe on
+// Windows; see mpvipc_unix.go / mpvipc_windows.go for the platform-specific
+// dial logic and path helpers.
 type mpvConn struct {
 	conn net.Conn
 	enc  *json.Encoder
 	dec  *json.Decoder
-}
-
-// dialMPV attempts to connect to the mpv IPC socket.
-// It retries for up to 3 seconds as mpv takes a moment to create the socket.
-func dialMPV(socketPath string) (*mpvConn, error) {
-	var conn net.Conn
-	var err error
-
-	deadline := time.Now().Add(3 * time.Second)
-	for time.Now().Before(deadline) {
-		conn, err = net.Dial("unix", socketPath)
-		if err == nil {
-			break
-		}
-		time.Sleep(200 * time.Millisecond)
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to mpv IPC: %w", err)
-	}
-
-	return &mpvConn{
-		conn: conn,
-		enc:  json.NewEncoder(conn),
-		dec:  json.NewDecoder(bufio.NewReader(conn)),
-	}, nil
 }
 
 // GetTimePos queries the current playback position in seconds.
