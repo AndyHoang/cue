@@ -81,7 +81,11 @@ func run() error {
 		logger.Warn("store unavailable, continuing memory-only", "error", err)
 		libraryStore, _ = store.NewLibraryStore("", "") // Memory-only fallback
 	}
-	defer libraryStore.Close() // Clean shutdown
+	defer func() {
+		if err := libraryStore.Close(); err != nil {
+			logger.Error("failed to close store", "error", err)
+		}
+	}() // Clean shutdown
 
 	// Create launcher (uses configured player or auto-detects)
 	launcher := player.NewLauncher(cfg.Player.Command, cfg.Player.Args, cfg.Player.StartFlag, logger)

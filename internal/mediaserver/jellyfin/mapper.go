@@ -8,12 +8,6 @@ import (
 	"github.com/SuperCoolPencil/cue/internal/domain"
 )
 
-const (
-	// Jellyfin uses 100-nanosecond ticks
-	ticksPerMillisecond = 10000
-	ticksPerSecond      = 10000000
-)
-
 // MapLibraries converts Jellyfin virtual folders to domain libraries
 func MapLibraries(items []Item) []domain.Library {
 	libraries := make([]domain.Library, 0, len(items))

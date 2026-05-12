@@ -24,7 +24,7 @@
 **Download** from [Releases](https://github.com/SuperCoolPencil/cue/releases) or install with Go:
 
 ```bash
-go install github.com/SuperCoolPencil/cue/cmd/cue@latest
+go install github.com/SuperCoolPencil/cue@latest
 ```
 
 ### First Run

@@ -8,7 +8,7 @@ before:
 
 builds:
   - id: cue
-    main: ./cmd/cue
+    main: .
     binary: cue
     env:
       - CGO_ENABLED=0

@@ -174,7 +174,7 @@ func (m Model) renderSplitColumn(col *components.ListColumn, colWidth, listHeigh
 	// If the selected item is a Show or Season, and we have an active column containing its episodes,
 	// recalculate the unwatched count locally to ensure consistency with the 90% logic.
 	if selected != nil {
-		var colIdx int = -1
+		var colIdx = -1
 		for i := 0; i < m.ColumnStack.Len(); i++ {
 			if m.ColumnStack.Get(i) == col {
 				colIdx = i

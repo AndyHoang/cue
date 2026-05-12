@@ -57,7 +57,7 @@ func NewClient(cfg *config.Config, logger *slog.Logger) (MediaSource, error) {
 
 	case config.SourceTypeJellyfin:
 		if cfg.Server.UserID == "" {
-			return nil, fmt.Errorf("Jellyfin requires user ID")
+			return nil, fmt.Errorf("jellyfin requires user ID")
 		}
 		return jellyfin.NewClient(cfg.Server.URL, cfg.Server.Token, cfg.Server.UserID, logger), nil
 
