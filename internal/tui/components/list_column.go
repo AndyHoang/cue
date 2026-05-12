@@ -1089,13 +1089,15 @@ func watchIndicator(status domain.WatchStatus) (string, lipgloss.Color) {
 
 // mediaItemWatchIndicator returns the character and color for a media item's watch status
 func mediaItemWatchIndicator(item domain.MediaItem) (string, lipgloss.Color) {
-	if item.IsPlayed {
+	status := item.WatchStatus()
+	switch status {
+	case domain.WatchStatusWatched:
 		return styles.PlayedChar, styles.Green
-	}
-	if item.ViewOffset.Milliseconds() > 0 {
+	case domain.WatchStatusInProgress:
 		return styles.InProgressChar, styles.PlexOrange
+	default:
+		return styles.UnplayedChar, styles.PlexOrange
 	}
-	return styles.UnplayedChar, styles.PlexOrange
 }
 
 func (c *ListColumn) renderPlaylistItem(playlist domain.Playlist, selected bool, width int) string {
@@ -1408,4 +1410,9 @@ func (c *ListColumn) compareBySortField(i, j int) int {
 	default:
 		return 0
 	}
+}
+
+// Items returns the current items in the column
+func (c *ListColumn) Items() []domain.ListItem {
+	return c.items
 }

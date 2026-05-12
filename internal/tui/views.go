@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/SuperCoolPencil/cue/internal/domain"
 	"github.com/SuperCoolPencil/cue/internal/tui/components"
 	"github.com/SuperCoolPencil/cue/internal/tui/styles"
 	"github.com/charmbracelet/lipgloss"
@@ -98,12 +99,11 @@ func (m Model) View() string {
 			columnViews = append(columnViews, libCol.View())
 
 			parentCol := m.ColumnStack.Get(topIdx - 1)
-			if layout.grandparentWidth > 0 || !canSplit {
-				// Full height when 3 columns are shown OR not enough height to split
+			if canSplit {
+				columnViews = append(columnViews, m.renderSplitColumn(parentCol, layout.parentWidth, listHeight, infoHeight))
+			} else {
 				parentCol.SetSize(layout.parentWidth, contentHeight)
 				columnViews = append(columnViews, parentCol.View())
-			} else {
-				columnViews = append(columnViews, m.renderSplitColumn(parentCol, layout.parentWidth, listHeight, infoHeight))
 			}
 
 			activeCol := m.ColumnStack.Get(topIdx)
@@ -168,7 +168,51 @@ func (m Model) renderSplitColumn(col *components.ListColumn, colWidth, listHeigh
 	// Info pane: fresh inspector for this column's selected item
 	insp := components.NewInspector()
 	insp.SetSize(colWidth, infoHeight)
-	insp.SetItem(col.SelectedItem())
+
+	selected := col.SelectedItem()
+
+	// If the selected item is a Show or Season, and we have an active column containing its episodes,
+	// recalculate the unwatched count locally to ensure consistency with the 90% logic.
+	if selected != nil {
+		var colIdx int = -1
+		for i := 0; i < m.ColumnStack.Len(); i++ {
+			if m.ColumnStack.Get(i) == col {
+				colIdx = i
+				break
+			}
+		}
+
+		if colIdx >= 0 && colIdx+1 < m.ColumnStack.Len() {
+			nextCol := m.ColumnStack.Get(colIdx + 1)
+			if nextCol.ColumnType() == components.ColumnTypeEpisodes || nextCol.ColumnType() == components.ColumnTypeSeasonEpisodes {
+				var total, unwatched int
+				for _, item := range nextCol.Items() {
+					if episode, ok := item.(*domain.MediaItem); ok && episode.Type == domain.MediaTypeEpisode {
+						total++
+						if episode.WatchStatus() != domain.WatchStatusWatched {
+							unwatched++
+						}
+					}
+				}
+
+				if total > 0 {
+					if show, ok := selected.(*domain.Show); ok {
+						showCopy := *show
+						showCopy.EpisodeCount = total
+						showCopy.UnwatchedCount = unwatched
+						selected = &showCopy
+					} else if season, ok := selected.(*domain.Season); ok {
+						seasonCopy := *season
+						seasonCopy.EpisodeCount = total
+						seasonCopy.UnwatchedCount = unwatched
+						selected = &seasonCopy
+					}
+				}
+			}
+		}
+	}
+
+	insp.SetItem(selected)
 	infoView := insp.View()
 
 	return lipgloss.JoinVertical(lipgloss.Left, listView, infoView)

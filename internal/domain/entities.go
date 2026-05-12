@@ -63,6 +63,9 @@ func (m MediaItem) WatchStatus() WatchStatus {
 	if m.IsPlayed {
 		return WatchStatusWatched
 	}
+	if m.Duration > 0 && float64(m.ViewOffset)/float64(m.Duration) >= 0.9 {
+		return WatchStatusWatched
+	}
 	if m.ViewOffset > 0 {
 		return WatchStatusInProgress
 	}

@@ -221,10 +221,10 @@ func RenderProgressBar(percent float64, width int) string {
 
 	bar := ""
 	for i := 0; i < filled; i++ {
-		bar += ProgressFullStyle.Render("█")
+		bar += ProgressFullStyle.Render("━")
 	}
 	for i := filled; i < width; i++ {
-		bar += ProgressEmptyStyle.Render("░")
+		bar += ProgressEmptyStyle.Render("─")
 	}
 
 	return bar

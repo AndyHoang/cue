@@ -251,9 +251,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		// Update top column with movies
-		if top := m.ColumnStack.Top(); top != nil {
-			top.SetItems(msg.Movies)
+		// Update matching column with movies
+		if col := m.ColumnStack.FindColumn(msg.LibraryID); col != nil {
+			col.SetItems(msg.Movies)
 		}
 
 		m.updateInspector()
@@ -280,9 +280,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		// Update top column with shows
-		if top := m.ColumnStack.Top(); top != nil {
-			top.SetItems(msg.Shows)
+		// Update matching column with shows
+		if col := m.ColumnStack.FindColumn(msg.LibraryID); col != nil {
+			col.SetItems(msg.Shows)
 		}
 
 		m.updateInspector()
@@ -309,9 +309,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		// Update top column with mixed content
-		if top := m.ColumnStack.Top(); top != nil {
-			top.SetItems(msg.Items)
+		// Update matching column with mixed content
+		if col := m.ColumnStack.FindColumn(msg.LibraryID); col != nil {
+			col.SetItems(msg.Items)
 		}
 
 		m.updateInspector()
@@ -650,40 +650,57 @@ func (m *Model) refreshCurrentView() tea.Cmd {
 		return LoadLibrariesCmd(m.LibraryService)
 	}
 
+	var cmds []tea.Cmd
+
 	// Get context from column stack to reload
 	switch top.ColumnType() {
 	case components.ColumnTypeMovies:
 		if libCol := m.libraryColumn(); libCol != nil {
 			if lib := libCol.SelectedLibrary(); lib != nil {
-				return LoadMoviesCmd(m.LibraryService, lib.ID)
+				cmds = append(cmds, LoadMoviesCmd(m.LibraryService, lib.ID))
 			}
 		}
 	case components.ColumnTypeShows:
 		if libCol := m.libraryColumn(); libCol != nil {
 			if lib := libCol.SelectedLibrary(); lib != nil {
-				return LoadShowsCmd(m.LibraryService, lib.ID)
+				cmds = append(cmds, LoadShowsCmd(m.LibraryService, lib.ID))
 			}
 		}
 	case components.ColumnTypeSeasons:
 		// Get show from parent column - needs libID for hierarchical cache
 		if showCol := m.ColumnStack.Get(m.ColumnStack.Len() - 2); showCol != nil {
 			if show := showCol.SelectedShow(); show != nil {
-				return LoadSeasonsCmd(m.LibraryService, m.currentLibID, show.ID)
+				cmds = append(cmds, LoadSeasonsCmd(m.LibraryService, m.currentLibID, show.ID))
 			}
 		}
 	case components.ColumnTypeEpisodes:
 		// Get season from parent column - needs full ancestry for hierarchical cache
 		if seasonCol := m.ColumnStack.Get(m.ColumnStack.Len() - 2); seasonCol != nil {
 			if season := seasonCol.SelectedSeason(); season != nil {
-				return LoadEpisodesCmd(m.LibraryService, m.currentLibID, m.currentShowID, season.ID)
+				cmds = append(cmds, LoadEpisodesCmd(m.LibraryService, m.currentLibID, m.currentShowID, season.ID))
 			}
+		}
+		// ALSO reload the parent (Shows) to update counters
+		if showCol := m.ColumnStack.Get(m.ColumnStack.Len() - 3); showCol != nil && showCol.ColumnType() == components.ColumnTypeShows {
+			cmds = append(cmds, LoadShowsCmd(m.LibraryService, m.currentLibID))
+		}
+	case components.ColumnTypeSeasonEpisodes:
+		// Collapsible view: reload seasons for the show
+		cmds = append(cmds, LoadSeasonsCmd(m.LibraryService, m.currentLibID, m.currentShowID))
+		// ALSO reload the parent (Shows) to update counters
+		if showCol := m.ColumnStack.Get(m.ColumnStack.Len() - 2); showCol != nil && showCol.ColumnType() == components.ColumnTypeShows {
+			cmds = append(cmds, LoadShowsCmd(m.LibraryService, m.currentLibID))
 		}
 	case components.ColumnTypeMixed:
 		if libCol := m.libraryColumn(); libCol != nil {
 			if lib := libCol.SelectedLibrary(); lib != nil {
-				return LoadMixedLibraryCmd(m.LibraryService, lib.ID)
+				cmds = append(cmds, LoadMixedLibraryCmd(m.LibraryService, lib.ID))
 			}
 		}
+	}
+
+	if len(cmds) > 0 {
+		return tea.Batch(cmds...)
 	}
 
 	return LoadLibrariesCmd(m.LibraryService)

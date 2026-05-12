@@ -140,3 +140,13 @@ func (cs *ColumnStack) UpdateSpinnerFrame(frame int) {
 		col.SetSpinnerFrame(frame)
 	}
 }
+
+// FindColumn returns the column with the matching content ID, or nil if not found
+func (cs *ColumnStack) FindColumn(contentID string) *components.ListColumn {
+	for _, col := range cs.columns {
+		if col.ContentID() == contentID {
+			return col
+		}
+	}
+	return nil
+}
