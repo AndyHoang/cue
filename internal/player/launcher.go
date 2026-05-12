@@ -59,20 +59,21 @@ func NewLauncher(command string, args []string, seekFlag string, logger *slog.Lo
 	}
 }
 
-// Launch opens a media URL in the configured player or auto-detected player
-func (l *Launcher) Launch(url string, startOffset time.Duration) (*exec.Cmd, string, error) {
+// Launch opens a media URL in the configured player or auto-detected player.
+// Any external subtitle tracks in `media` are side-loaded into mpv-family players.
+func (l *Launcher) Launch(media domain.PlayableMedia, startOffset time.Duration) (*exec.Cmd, string, error) {
 	offsetSecs := int(startOffset.Seconds())
 
 	// Tier 1: User configured a specific player
 	if l.command != "" {
 		l.logger.Info("using configured player", "command", l.command)
-		return l.launchConfigured(url, offsetSecs)
+		return l.launchConfigured(media, offsetSecs)
 	}
 
 	// Tier 2: Auto-detect known players
 	if player, found := l.detectPlayer(); found {
 		l.logger.Info("auto-detected player", "binary", player.Binary)
-		return l.execPlayer(player, url, offsetSecs)
+		return l.execPlayer(player, media, offsetSecs)
 	}
 
 	// Tier 3: System default fallback (xdg-open/open)
@@ -80,8 +81,55 @@ func (l *Launcher) Launch(url string, startOffset time.Duration) (*exec.Cmd, str
 	if offsetSecs > 0 {
 		l.logger.Warn("resume not supported with system default player - starting from beginning")
 	}
-	cmd, err := l.launchDefault(url)
+	if len(media.Subtitles) > 0 {
+		l.logger.Warn("external subtitles not supported with system default player - some tracks may be missing")
+	}
+	cmd, err := l.launchDefault(media.URL)
 	return cmd, "", err
+}
+
+// subFileArgs returns the player-specific args needed to side-load each external
+// subtitle. Returns nil when the binary has no known sub-file flag.
+func subFileArgs(binary string, subs []domain.Subtitle) []string {
+	if len(subs) == 0 {
+		return nil
+	}
+	bin := strings.ToLower(filepath.Base(binary))
+	switch bin {
+	case "mpv", "iina", "celluloid", "haruna":
+		// mpv, IINA and other mpv-frontends accept multiple --sub-file flags.
+		// IINA's CLI is `iina-cli`, but mpv-passthrough flags also work via
+		// the `--mpv-` prefix used in seek flags; --sub-file works directly
+		// for mpv/celluloid/haruna. IINA accepts `--mpv-sub-file=` too.
+		prefix := "--sub-file="
+		if bin == "iina" {
+			prefix = "--mpv-sub-file="
+		}
+		args := make([]string, 0, len(subs))
+		for _, s := range subs {
+			if s.URL == "" {
+				continue
+			}
+			args = append(args, prefix+s.URL)
+		}
+		return args
+	case "vlc":
+		// VLC supports only a single :sub-file. If the user has multiple,
+		// pick the default (or first) so they at least get one.
+		pick := subs[0]
+		for _, s := range subs {
+			if s.Default {
+				pick = s
+				break
+			}
+		}
+		if pick.URL == "" {
+			return nil
+		}
+		return []string{":sub-file=" + pick.URL}
+	default:
+		return nil
+	}
 }
 
 // detectPlayer returns the first available player from the platform-specific list
@@ -106,7 +154,7 @@ func (l *Launcher) detectPlayer() (PlayerDef, bool) {
 }
 
 // execPlayer launches the detected player with optional seek offset
-func (l *Launcher) execPlayer(player PlayerDef, url string, offsetSecs int) (*exec.Cmd, string, error) {
+func (l *Launcher) execPlayer(player PlayerDef, media domain.PlayableMedia, offsetSecs int) (*exec.Cmd, string, error) {
 	args := []string{}
 	var ipcSocket string
 
@@ -123,7 +171,14 @@ func (l *Launcher) execPlayer(player PlayerDef, url string, offsetSecs int) (*ex
 		args = append(args, strings.Fields(formattedFlag)...)
 	}
 
-	args = append(args, url)
+	if subArgs := subFileArgs(player.Binary, media.Subtitles); len(subArgs) > 0 {
+		args = append(args, subArgs...)
+	} else if len(media.Subtitles) > 0 {
+		l.logger.Warn("external subtitles not supported by player - skipping",
+			"binary", player.Binary, "count", len(media.Subtitles))
+	}
+
+	args = append(args, media.URL)
 
 	l.logger.Debug("executing player", "binary", player.Binary, "args", args)
 	cmd := exec.Command(player.Binary, args...)
@@ -134,7 +189,7 @@ func (l *Launcher) execPlayer(player PlayerDef, url string, offsetSecs int) (*ex
 }
 
 // launchConfigured launches the media using the user-configured player
-func (l *Launcher) launchConfigured(url string, offsetSecs int) (*exec.Cmd, string, error) {
+func (l *Launcher) launchConfigured(media domain.PlayableMedia, offsetSecs int) (*exec.Cmd, string, error) {
 	args := append([]string{}, l.args...)
 
 	// Add seek offset: user-configured flag takes precedence, then table lookup
@@ -154,7 +209,14 @@ func (l *Launcher) launchConfigured(url string, offsetSecs int) (*exec.Cmd, stri
 		}
 	}
 
-	args = append(args, url)
+	if subArgs := subFileArgs(l.command, media.Subtitles); len(subArgs) > 0 {
+		args = append(args, subArgs...)
+	} else if len(media.Subtitles) > 0 {
+		l.logger.Warn("external subtitles not supported by configured player - skipping",
+			"command", l.command, "count", len(media.Subtitles))
+	}
+
+	args = append(args, media.URL)
 
 	l.logger.Debug("launching configured player", "command", l.command, "args", args)
 
@@ -263,15 +325,16 @@ func (s *Service) Resume(ctx context.Context, item domain.MediaItem) (PlaybackHa
 
 // playItem resolves URL and launches player
 func (s *Service) playItem(ctx context.Context, item domain.MediaItem, offset time.Duration) (PlaybackHandle, error) {
-	url, err := s.playback.ResolvePlayableURL(ctx, item.ID)
+	media, err := s.playback.ResolvePlayable(ctx, item.ID)
 	if err != nil {
 		s.logger.Error("failed to resolve playable URL", "error", err, "itemID", item.ID)
 		return PlaybackHandle{}, err
 	}
 
-	s.logger.Info("launching playback", "title", item.Title, "itemID", item.ID, "offset", offset)
+	s.logger.Info("launching playback",
+		"title", item.Title, "itemID", item.ID, "offset", offset, "subtitles", len(media.Subtitles))
 
-	cmd, ipcSocket, err := s.launcher.Launch(url, offset)
+	cmd, ipcSocket, err := s.launcher.Launch(media, offset)
 	if err != nil {
 		return PlaybackHandle{}, err
 	}

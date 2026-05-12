@@ -337,8 +337,9 @@ func (c *Client) Search(ctx context.Context, query string) ([]*domain.MediaItem,
 	return MapSearchResults(resp.SearchHints, c.baseURL), nil
 }
 
-// ResolvePlayableURL returns a direct playback URL for an item
-func (c *Client) ResolvePlayableURL(ctx context.Context, itemID string) (string, error) {
+// ResolvePlayable returns a direct playback URL plus any external subtitle tracks
+// for an item.
+func (c *Client) ResolvePlayable(ctx context.Context, itemID string) (domain.PlayableMedia, error) {
 	// Get playback info to get the stream URL
 	query := url.Values{}
 	query.Set("UserId", c.userID)
@@ -347,26 +348,109 @@ func (c *Client) ResolvePlayableURL(ctx context.Context, itemID string) (string,
 	path := fmt.Sprintf("/Items/%s/PlaybackInfo", itemID)
 	body, err := c.doRequest(ctx, http.MethodGet, path, query)
 	if err != nil {
-		return "", err
+		return domain.PlayableMedia{}, err
 	}
 
 	var resp PlaybackInfoResponse
 	if err := json.Unmarshal(body, &resp); err != nil {
-		return "", fmt.Errorf("failed to parse response: %w", err)
+		return domain.PlayableMedia{}, fmt.Errorf("failed to parse response: %w", err)
 	}
 
 	if len(resp.MediaSources) == 0 {
-		return "", domain.ErrItemNotFound
+		return domain.PlayableMedia{}, domain.ErrItemNotFound
 	}
 
 	source := resp.MediaSources[0]
 
 	// Build direct stream URL
-	// Format: /Videos/{itemId}/stream.{container}?static=true&api_key={token}
+	// Format: /Videos/{itemId}/stream.{container}?Static=true&api_key={token}
 	streamURL := fmt.Sprintf("%s/Videos/%s/stream.%s?Static=true&api_key=%s",
 		c.baseURL, itemID, source.Container, c.token)
 
-	return streamURL, nil
+	subs := c.collectExternalSubtitles(itemID, source)
+	if len(subs) > 0 {
+		c.logger.Debug("resolved external subtitles", "itemID", itemID, "count", len(subs))
+	}
+
+	return domain.PlayableMedia{URL: streamURL, Subtitles: subs}, nil
+}
+
+// collectExternalSubtitles builds a list of side-loadable subtitle tracks
+// from the media source's stream list. Embedded tracks are skipped because
+// the player picks them up from the container directly.
+func (c *Client) collectExternalSubtitles(itemID string, source MediaSource) []domain.Subtitle {
+	if len(source.MediaStreams) == 0 {
+		return nil
+	}
+
+	subs := make([]domain.Subtitle, 0)
+	for _, stream := range source.MediaStreams {
+		if stream.Type != "Subtitle" {
+			continue
+		}
+		// Embedded subtitles travel inside the container and don't need a sub-file.
+		if !stream.IsExternal && !strings.EqualFold(stream.DeliveryMethod, "External") {
+			continue
+		}
+
+		codec := strings.ToLower(stream.Codec)
+		ext := codec
+		if ext == "" {
+			ext = "srt"
+		}
+
+		// Prefer the server-provided DeliveryUrl when present; otherwise build the
+		// canonical /Videos/{item}/{src}/Subtitles/{idx}/Stream.{codec} URL.
+		var subURL string
+		switch {
+		case stream.DeliveryURL != "":
+			subURL = c.absolutize(stream.DeliveryURL)
+			subURL = appendAPIKey(subURL, c.token)
+		default:
+			subURL = fmt.Sprintf("%s/Videos/%s/%s/Subtitles/%d/Stream.%s?api_key=%s",
+				c.baseURL, itemID, source.ID, stream.Index, ext, c.token)
+		}
+
+		subs = append(subs, domain.Subtitle{
+			URL:      subURL,
+			Language: stream.Language,
+			Title:    firstNonEmpty(stream.DisplayTitle, stream.Title),
+			Codec:    codec,
+			Default:  stream.IsDefault,
+			Forced:   stream.IsForced,
+		})
+	}
+	return subs
+}
+
+func (c *Client) absolutize(u string) string {
+	if strings.HasPrefix(u, "http://") || strings.HasPrefix(u, "https://") {
+		return u
+	}
+	if !strings.HasPrefix(u, "/") {
+		u = "/" + u
+	}
+	return c.baseURL + u
+}
+
+func appendAPIKey(u, token string) string {
+	if token == "" {
+		return u
+	}
+	sep := "?"
+	if strings.Contains(u, "?") {
+		sep = "&"
+	}
+	return u + sep + "api_key=" + token
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 // GetMediaItem returns detailed metadata for a specific item

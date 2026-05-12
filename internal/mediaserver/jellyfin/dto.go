@@ -101,18 +101,25 @@ type MediaSource struct {
 
 // MediaStream represents a video, audio, or subtitle stream
 type MediaStream struct {
-	Codec        string `json:"Codec"`
-	Language     string `json:"Language,omitempty"`
-	DisplayTitle string `json:"DisplayTitle,omitempty"`
-	Type         string `json:"Type"` // "Video", "Audio", "Subtitle"
-	Index        int    `json:"Index"`
-	IsDefault    bool   `json:"IsDefault"`
-	Height       int    `json:"Height,omitempty"`
-	Width        int    `json:"Width,omitempty"`
-	BitRate      int    `json:"BitRate,omitempty"`
-	Channels     int    `json:"Channels,omitempty"`
-	SampleRate   int    `json:"SampleRate,omitempty"`
-	AspectRatio  string `json:"AspectRatio,omitempty"`
+	Codec                  string `json:"Codec"`
+	Language               string `json:"Language,omitempty"`
+	DisplayTitle           string `json:"DisplayTitle,omitempty"`
+	Title                  string `json:"Title,omitempty"`
+	Type                   string `json:"Type"` // "Video", "Audio", "Subtitle"
+	Index                  int    `json:"Index"`
+	IsDefault              bool   `json:"IsDefault"`
+	IsForced               bool   `json:"IsForced,omitempty"`
+	IsExternal             bool   `json:"IsExternal,omitempty"`
+	IsTextSubtitleStream   bool   `json:"IsTextSubtitleStream,omitempty"`
+	SupportsExternalStream bool   `json:"SupportsExternalStream,omitempty"`
+	DeliveryMethod         string `json:"DeliveryMethod,omitempty"` // "Embed", "External", "Hls", "Encode"
+	DeliveryURL            string `json:"DeliveryUrl,omitempty"`
+	Height                 int    `json:"Height,omitempty"`
+	Width                  int    `json:"Width,omitempty"`
+	BitRate                int    `json:"BitRate,omitempty"`
+	Channels               int    `json:"Channels,omitempty"`
+	SampleRate             int    `json:"SampleRate,omitempty"`
+	AspectRatio            string `json:"AspectRatio,omitempty"`
 }
 
 // PlaybackInfoResponse contains playback information for an item
