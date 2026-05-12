@@ -29,11 +29,11 @@ type Config struct {
 
 // ServerConfig holds media server configuration
 type ServerConfig struct {
-	Type     SourceType `mapstructure:"type"`     // "plex" or "jellyfin"
-	URL      string     `mapstructure:"url"`      // Server URL
-	Token    string     `mapstructure:"token"`    // Plex token OR Jellyfin API key
-	UserID   string     `mapstructure:"user_id"`  // Jellyfin only
-	Username string     `mapstructure:"username"` // Jellyfin only (display)
+	Type     SourceType `mapstructure:"type"     yaml:"type"`     // "plex" or "jellyfin"
+	URL      string     `mapstructure:"url"      yaml:"url"`      // Server URL
+	Token    string     `mapstructure:"token"    yaml:"token"`    // Plex token OR Jellyfin API key
+	UserID   string     `mapstructure:"user_id"  yaml:"user_id"`  // Jellyfin only
+	Username string     `mapstructure:"username" yaml:"username"` // Jellyfin only (display)
 }
 
 // PlayerConfig holds media player configuration
