@@ -59,7 +59,7 @@ func (c *Client) FetchIdentity(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -105,7 +105,7 @@ func (c *Client) doRequest(ctx context.Context, method, path string, query url.V
 		c.logger.Error("plex request failed", "error", err)
 		return nil, domain.ErrServerOffline
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -443,7 +443,7 @@ func (c *Client) CreatePlaylist(ctx context.Context, title string, itemIDs []str
 		c.logger.Error("plex create playlist failed", "error", err)
 		return nil, domain.ErrServerOffline
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -508,7 +508,7 @@ func (c *Client) AddToPlaylist(ctx context.Context, playlistID string, itemIDs [
 			c.logger.Error("plex add to playlist failed", "error", err)
 			return domain.ErrServerOffline
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 			return fmt.Errorf("failed to add item to playlist: status %d", resp.StatusCode)
@@ -567,7 +567,7 @@ func (c *Client) RemoveFromPlaylist(ctx context.Context, playlistID string, item
 		c.logger.Error("plex remove from playlist failed", "error", err)
 		return domain.ErrServerOffline
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		return fmt.Errorf("failed to remove item from playlist: status %d", resp.StatusCode)
@@ -598,7 +598,7 @@ func (c *Client) DeletePlaylist(ctx context.Context, playlistID string) error {
 		c.logger.Error("plex delete playlist failed", "error", err)
 		return domain.ErrServerOffline
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		return fmt.Errorf("failed to delete playlist: status %d", resp.StatusCode)

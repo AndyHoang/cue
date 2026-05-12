@@ -126,7 +126,7 @@ func (f *AuthFlow) authenticate(ctx context.Context, serverURL, username, passwo
 		f.logger.Error("Jellyfin auth request failed", "error", err)
 		return nil, ErrServerOffline
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {

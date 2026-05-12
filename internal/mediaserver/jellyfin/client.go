@@ -90,7 +90,7 @@ func (c *Client) doRequest(ctx context.Context, method, path string, query url.V
 		}
 
 		body, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if err != nil {
 			return nil, fmt.Errorf("failed to read response: %w", err)
 		}
@@ -413,7 +413,7 @@ func (c *Client) MarkPlayed(ctx context.Context, itemID string) error {
 	if err != nil {
 		return domain.ErrServerOffline
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to mark as played: status %d", resp.StatusCode)
@@ -437,7 +437,7 @@ func (c *Client) MarkUnplayed(ctx context.Context, itemID string) error {
 	if err != nil {
 		return domain.ErrServerOffline
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to mark as unplayed: status %d", resp.StatusCode)
@@ -473,7 +473,7 @@ func (c *Client) UpdateProgress(ctx context.Context, itemID string, positionMs i
 	if err != nil {
 		return domain.ErrServerOffline
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		return fmt.Errorf("failed to report progress: status %d", resp.StatusCode)
@@ -564,7 +564,7 @@ func (c *Client) CreatePlaylist(ctx context.Context, title string, itemIDs []str
 	if err != nil {
 		return nil, domain.ErrServerOffline
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -615,7 +615,7 @@ func (c *Client) AddToPlaylist(ctx context.Context, playlistID string, itemIDs [
 	if err != nil {
 		return domain.ErrServerOffline
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		return fmt.Errorf("failed to add items to playlist: status %d", resp.StatusCode)
@@ -642,7 +642,7 @@ func (c *Client) RemoveFromPlaylist(ctx context.Context, playlistID string, item
 	if err != nil {
 		return domain.ErrServerOffline
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		return fmt.Errorf("failed to remove item from playlist: status %d", resp.StatusCode)
@@ -666,7 +666,7 @@ func (c *Client) DeletePlaylist(ctx context.Context, playlistID string) error {
 	if err != nil {
 		return domain.ErrServerOffline
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		return fmt.Errorf("failed to delete playlist: status %d", resp.StatusCode)

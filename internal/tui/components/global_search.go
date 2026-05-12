@@ -332,14 +332,15 @@ func (o GlobalSearch) renderResults(b *strings.Builder, modalWidth, maxResults i
 		title := result.Title
 		matchedIndexes := result.MatchedIndexes
 		maxTitleWidth := modalWidth - 25
-		if result.Type == domain.MediaTypeEpisode {
+		switch result.Type {
+		case domain.MediaTypeEpisode:
 			// For episodes, show: ShowTitle - S01E01 Title
 			if item, ok := result.Item.(*domain.MediaItem); ok {
 				title = fmt.Sprintf("%s - %s %s", item.ShowTitle, item.EpisodeCode(), item.Title)
 				// Reset matched indexes since the title format changed
 				matchedIndexes = nil
 			}
-		} else if result.Type == domain.MediaTypeMovie {
+		case domain.MediaTypeMovie:
 			// For movies, show: Title (Year)
 			if item, ok := result.Item.(*domain.MediaItem); ok && item.Year > 0 {
 				title = fmt.Sprintf("%s (%d)", item.Title, item.Year)

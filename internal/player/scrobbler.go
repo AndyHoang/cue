@@ -56,7 +56,7 @@ func (s *Scrobbler) Monitor(ctx context.Context, cmd *exec.Cmd, ipcSocket string
 		defer close(statusCh)
 		defer func() {
 			if ipcSocket != "" {
-				os.Remove(ipcSocket)
+				_ = os.Remove(ipcSocket)
 			}
 		}()
 
@@ -70,7 +70,7 @@ func (s *Scrobbler) Monitor(ctx context.Context, cmd *exec.Cmd, ipcSocket string
 			if err != nil {
 				s.logger.Warn("mpv IPC connection failed, falling back to exit-only reporting", "error", err)
 			} else {
-				defer mpv.Close()
+				defer func() { _ = mpv.Close() }()
 			}
 		}
 

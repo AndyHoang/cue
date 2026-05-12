@@ -81,7 +81,7 @@ func (a *AuthClient) GetPIN(ctx context.Context) (pin string, id int, err error)
 		a.logger.Error("PIN request failed", "error", err)
 		return "", 0, ErrServerOffline
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -122,7 +122,7 @@ func (a *AuthClient) CheckPIN(ctx context.Context, pinID int) (token string, cla
 		a.logger.Error("PIN check failed", "error", err)
 		return "", false, ErrServerOffline
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

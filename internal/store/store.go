@@ -74,7 +74,7 @@ func NewLibraryStore(baseCacheDir, serverURL string) (*LibraryStore, error) {
 		return nil
 	})
 	if err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, err
 	}
 
@@ -97,7 +97,7 @@ func cleanupLegacyJSONCache(cacheDir string) {
 		return
 	}
 	for _, path := range matches {
-		os.Remove(path) // Ignore errors
+		_ = os.Remove(path) // Explicitly ignore errors for best-effort cleanup
 	}
 }
 
@@ -127,7 +127,7 @@ func (s *LibraryStore) get(bucket []byte, key string, dest interface{}) bool {
 
 	// Read from BoltDB
 	var data []byte
-	s.db.View(func(tx *bolt.Tx) error {
+	_ = s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucket)
 		if b == nil {
 			return nil
@@ -188,10 +188,10 @@ func (s *LibraryStore) delete(bucket []byte, key string) {
 	}
 
 	// Delete from BoltDB
-	s.db.Update(func(tx *bolt.Tx) error {
+	_ = s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucket)
 		if b != nil {
-			b.Delete([]byte(key))
+			return b.Delete([]byte(key))
 		}
 		return nil
 	})
@@ -213,7 +213,7 @@ func (s *LibraryStore) deletePrefix(bucket []byte, prefix string) {
 	}
 
 	// Delete from BoltDB using prefix scan
-	s.db.Update(func(tx *bolt.Tx) error {
+	_ = s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucket)
 		if b == nil {
 			return nil
@@ -366,7 +366,7 @@ func (s *LibraryStore) InvalidateAll() {
 	}
 
 	// Delete all data from all buckets
-	s.db.Update(func(tx *bolt.Tx) error {
+	_ = s.db.Update(func(tx *bolt.Tx) error {
 		for _, bucket := range [][]byte{bucketLibraries, bucketContent, bucketSeasons, bucketEpisodes, bucketPlaylists, bucketQueue} {
 			b := tx.Bucket(bucket)
 			if b == nil {
