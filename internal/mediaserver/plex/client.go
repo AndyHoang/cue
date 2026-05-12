@@ -291,36 +291,98 @@ func (c *Client) Search(ctx context.Context, query string) ([]*domain.MediaItem,
 	return MapOnDeck(container.Metadata, c.baseURL), nil
 }
 
-// ResolvePlayableURL returns a direct playback URL for an item
-func (c *Client) ResolvePlayableURL(ctx context.Context, itemID string) (string, error) {
+// ResolvePlayable returns a direct playback URL plus any external subtitle
+// tracks for an item.
+func (c *Client) ResolvePlayable(ctx context.Context, itemID string) (domain.PlayableMedia, error) {
 	path := fmt.Sprintf("/library/metadata/%s", itemID)
 	body, err := c.doRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
-		return "", err
+		return domain.PlayableMedia{}, err
 	}
 
 	container, err := c.parseResponse(body)
 	if err != nil {
-		return "", err
+		return domain.PlayableMedia{}, err
 	}
 
 	if len(container.Metadata) == 0 {
-		return "", domain.ErrItemNotFound
+		return domain.PlayableMedia{}, domain.ErrItemNotFound
 	}
 
 	// Extract media URL from the metadata
 	m := container.Metadata[0]
 	if len(m.Media) == 0 || len(m.Media[0].Part) == 0 {
-		return "", domain.ErrItemNotFound
+		return domain.PlayableMedia{}, domain.ErrItemNotFound
 	}
 
-	mediaPath := m.Media[0].Part[0].Key
-	if mediaPath == "" {
-		return "", domain.ErrItemNotFound
+	part := m.Media[0].Part[0]
+	if part.Key == "" {
+		return domain.PlayableMedia{}, domain.ErrItemNotFound
 	}
 
-	// Add token to URL for direct play
-	return fmt.Sprintf("%s%s?X-Plex-Token=%s", c.baseURL, mediaPath, c.token), nil
+	mediaURL := fmt.Sprintf("%s%s?X-Plex-Token=%s", c.baseURL, part.Key, c.token)
+	subs := c.collectExternalSubtitles(part)
+	if len(subs) > 0 {
+		c.logger.Debug("resolved external subtitles", "itemID", itemID, "count", len(subs))
+	}
+
+	return domain.PlayableMedia{URL: mediaURL, Subtitles: subs}, nil
+}
+
+// collectExternalSubtitles extracts external subtitle streams from a Plex Part.
+// Embedded subtitle streams (no Key, External!=1) are skipped because the player
+// reads them from the container directly.
+func (c *Client) collectExternalSubtitles(part Part) []domain.Subtitle {
+	if len(part.Stream) == 0 {
+		return nil
+	}
+	subs := make([]domain.Subtitle, 0)
+	for _, s := range part.Stream {
+		if s.StreamType != 3 { // 3 = subtitle
+			continue
+		}
+		// Only external streams expose a fetchable Key. Embedded streams have
+		// no separate URL and the player will discover them in the container.
+		if s.External != 1 && s.Key == "" {
+			continue
+		}
+		if s.Key == "" {
+			continue
+		}
+
+		sep := "?"
+		if strings.Contains(s.Key, "?") {
+			sep = "&"
+		}
+		subURL := fmt.Sprintf("%s%s%sX-Plex-Token=%s", c.baseURL, s.Key, sep, c.token)
+
+		lang := s.LanguageCode
+		if lang == "" {
+			lang = s.Language
+		}
+		title := s.DisplayTitle
+		if title == "" {
+			title = s.ExtendedDisplayTitle
+		}
+		if title == "" {
+			title = s.Title
+		}
+
+		codec := strings.ToLower(s.Codec)
+		if codec == "" {
+			codec = strings.ToLower(s.Format)
+		}
+
+		subs = append(subs, domain.Subtitle{
+			URL:      subURL,
+			Language: lang,
+			Title:    title,
+			Codec:    codec,
+			Default:  s.Default == 1,
+			Forced:   s.Forced == 1,
+		})
+	}
+	return subs
 }
 
 // GetMediaItem returns detailed metadata for a specific item
