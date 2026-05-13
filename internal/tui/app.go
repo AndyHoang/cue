@@ -143,7 +143,7 @@ type Model struct {
 	// UI preferences from config
 	UIConfig  config.UIConfig
 	AppConfig *config.Config
-	Version            string
+	Version   string
 
 	pendingPlayback    *domain.MediaItem
 	PendingSelectionID string // ID of item to select after load completes
