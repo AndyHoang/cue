@@ -318,6 +318,47 @@ func (s *LibraryStore) SaveEpisodes(libID, showID, seasonID string, episodes []*
 	return s.set(bucketEpisodes, key, episodes)
 }
 
+func (s *LibraryStore) GetAllEpisodes(libID string) ([]*domain.MediaItem, bool) {
+	var all []*domain.MediaItem
+	prefix := "lib:" + libID + ":"
+
+	if s.db == nil {
+		// Memory-only mode: need to scan s.cache
+		s.mu.RLock()
+		defer s.mu.RUnlock()
+		found := false
+		for k, v := range s.cache {
+			if strings.HasPrefix(k, string(bucketEpisodes)+":"+prefix) {
+				var eps []*domain.MediaItem
+				if json.Unmarshal(v, &eps) == nil {
+					all = append(all, eps...)
+					found = true
+				}
+			}
+		}
+		return all, found
+	}
+
+	ok := false
+	_ = s.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(bucketEpisodes)
+		if b == nil {
+			return nil
+		}
+		c := b.Cursor()
+		prefixBytes := []byte(prefix)
+		for k, v := c.Seek(prefixBytes); k != nil && strings.HasPrefix(string(k), prefix); k, v = c.Next() {
+			var eps []*domain.MediaItem
+			if json.Unmarshal(v, &eps) == nil {
+				all = append(all, eps...)
+				ok = true
+			}
+		}
+		return nil
+	})
+	return all, ok
+}
+
 // === Validation ===
 
 func (s *LibraryStore) IsValid(libID string, serverTS int64) bool {

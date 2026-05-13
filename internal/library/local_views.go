@@ -75,11 +75,29 @@ func (s *Service) cachedPlayableItems() []*domain.MediaItem {
 			if movies, ok := s.store.GetMovies(lib.ID); ok {
 				items = append(items, movies...)
 			}
+		case "show":
+			if eps, ok := s.store.GetAllEpisodes(lib.ID); ok {
+				items = append(items, eps...)
+			}
 		case "mixed":
 			if content, ok := s.store.GetMixedContent(lib.ID); ok {
+				var libEps []*domain.MediaItem
+				var fetched bool
 				for _, item := range content {
-					if media, ok := item.(*domain.MediaItem); ok {
-						items = append(items, media)
+					switch v := item.(type) {
+					case *domain.MediaItem:
+						items = append(items, v)
+					case *domain.Show:
+						if !fetched {
+							libEps, _ = s.store.GetAllEpisodes(lib.ID)
+							fetched = true
+						}
+						// Filter episodes for this specific show only
+						for _, ep := range libEps {
+							if ep.ShowID == v.ID {
+								items = append(items, ep)
+							}
+						}
 					}
 				}
 			}

@@ -46,3 +46,40 @@ func TestLocalViews(t *testing.T) {
 		t.Fatalf("4k filter = %#v", filtered)
 	}
 }
+
+func TestSmartFilteredShows(t *testing.T) {
+	st, err := store.NewLibraryStore("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = st.Close() })
+
+	libs := []domain.Library{{ID: "shows", Name: "Shows", Type: "show"}}
+	if err := st.SaveLibraries(libs); err != nil {
+		t.Fatal(err)
+	}
+
+	shows := []*domain.Show{{ID: "show1", Title: "Show 1", LibraryID: "shows"}}
+	if err := st.SaveShows("shows", shows, 1); err != nil {
+		t.Fatal(err)
+	}
+
+	seasons := []*domain.Season{{ID: "season1", ShowID: "show1", SeasonNum: 1}}
+	if err := st.SaveSeasons("shows", "show1", seasons); err != nil {
+		t.Fatal(err)
+	}
+
+	episodes := []*domain.MediaItem{
+		{ID: "ep1", Title: "Episode 1", Type: domain.MediaTypeEpisode, Height: 2160, ShowID: "show1"},
+	}
+	if err := st.SaveEpisodes("shows", "show1", "season1", episodes); err != nil {
+		t.Fatal(err)
+	}
+
+	svc := NewService(nil, st, slog.Default())
+
+	filtered := svc.SmartFiltered("4k", 0)
+	if len(filtered) != 1 || filtered[0].ID != "ep1" {
+		t.Fatalf("4k filter with shows = %#v", filtered)
+	}
+}

@@ -22,6 +22,7 @@ type Store interface {
 	SaveSeasons(libID, showID string, seasons []*Season) error
 
 	GetEpisodes(libID, showID, seasonID string) ([]*MediaItem, bool)
+	GetAllEpisodes(libID string) ([]*MediaItem, bool)
 	SaveEpisodes(libID, showID, seasonID string, episodes []*MediaItem) error
 
 	// === Playlists ===
