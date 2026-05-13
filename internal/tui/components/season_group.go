@@ -46,6 +46,7 @@ func (h *SeasonHeader) GetRating() float64         { return 0 }
 func (h *SeasonHeader) GetYear() int               { return 0 }
 func (h *SeasonHeader) GetAddedAt() int64          { return 0 }
 func (h *SeasonHeader) GetUpdatedAt() int64        { return 0 }
+func (h *SeasonHeader) GetLibraryID() string       { return h.Season.LibraryID }
 func (h *SeasonHeader) GetItemType() string        { return "season_header" }
 func (h *SeasonHeader) CanDrillDown() bool         { return false }
 

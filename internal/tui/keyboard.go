@@ -379,11 +379,11 @@ func (m Model) handleMarkWatched() (tea.Model, tea.Cmd) {
 	if top == nil {
 		return m, nil
 	}
-	item := top.SelectedMediaItem()
-	if item == nil {
+	item, ok := top.SelectedItem().(domain.ListItem)
+	if !ok || item.GetItemType() == "library" {
 		return m, nil
 	}
-	return m, MarkWatchedCmd(m.PlaybackSvc, item.ID, item.Title)
+	return m, MarkWatchedCmd(m.PlaybackSvc, item.GetLibraryID(), item.GetID(), item.GetTitle())
 }
 
 // handleMarkUnwatched marks the selected item as unwatched
@@ -392,11 +392,11 @@ func (m Model) handleMarkUnwatched() (tea.Model, tea.Cmd) {
 	if top == nil {
 		return m, nil
 	}
-	item := top.SelectedMediaItem()
-	if item == nil {
+	item, ok := top.SelectedItem().(domain.ListItem)
+	if !ok || item.GetItemType() == "library" {
 		return m, nil
 	}
-	return m, MarkUnwatchedCmd(m.PlaybackSvc, item.ID, item.Title)
+	return m, MarkUnwatchedCmd(m.PlaybackSvc, item.GetLibraryID(), item.GetID(), item.GetTitle())
 }
 
 // handlePlay plays the selected item from the beginning

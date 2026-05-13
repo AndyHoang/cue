@@ -421,15 +421,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case MarkWatchedMsg:
 		m.StatusMsg = "Marked watched: " + msg.Title
-		// Refresh to update watch status indicators
-		cmds = append(cmds, m.refreshCurrentView())
+		// Targeted refresh for the affected library
+		if msg.LibraryID != "" {
+			m.LibraryService.InvalidateLibrary(msg.LibraryID)
+			cmds = append(cmds, m.refreshLibrary(msg.LibraryID))
+		} else {
+			cmds = append(cmds, m.refreshCurrentView())
+		}
 		cmds = append(cmds, ClearStatusCmd(3*time.Second))
 		return m, tea.Batch(cmds...)
 
 	case MarkUnwatchedMsg:
 		m.StatusMsg = "Marked unwatched: " + msg.Title
-		// Refresh to update watch status indicators
-		cmds = append(cmds, m.refreshCurrentView())
+		// Targeted refresh for the affected library
+		if msg.LibraryID != "" {
+			m.LibraryService.InvalidateLibrary(msg.LibraryID)
+			cmds = append(cmds, m.refreshLibrary(msg.LibraryID))
+		} else {
+			cmds = append(cmds, m.refreshCurrentView())
+		}
 		cmds = append(cmds, ClearStatusCmd(3*time.Second))
 		return m, tea.Batch(cmds...)
 
@@ -704,6 +714,24 @@ func (m *Model) refreshCurrentView() tea.Cmd {
 	}
 
 	return LoadLibrariesCmd(m.LibraryService)
+}
+
+// refreshLibrary reloads a specific library's content based on its type
+func (m *Model) refreshLibrary(libID string) tea.Cmd {
+	lib := m.findLibrary(libID)
+	if lib == nil {
+		return m.refreshCurrentView()
+	}
+
+	m.Loading = true
+	switch lib.Type {
+	case "movie":
+		return LoadMoviesCmd(m.LibraryService, lib.ID)
+	case "show":
+		return LoadShowsCmd(m.LibraryService, lib.ID)
+	default:
+		return LoadMixedLibraryCmd(m.LibraryService, lib.ID)
+	}
 }
 
 // findLibrary finds a library by ID

@@ -140,6 +140,10 @@ func (s *Service) FetchSeasons(ctx context.Context, libID, showID string) ([]*do
 		s.logger.Error("failed to fetch seasons", "error", err, "showID", showID)
 		return nil, err
 	}
+	// Inject LibraryID for cache consistency
+	for _, sn := range seasons {
+		sn.LibraryID = libID
+	}
 	if err := s.store.SaveSeasons(libID, showID, seasons); err != nil {
 		s.logger.Error("failed to save seasons", "error", err, "showID", showID)
 	}
@@ -152,6 +156,12 @@ func (s *Service) FetchEpisodes(ctx context.Context, libID, showID, seasonID str
 	if err != nil {
 		s.logger.Error("failed to fetch episodes", "error", err, "seasonID", seasonID)
 		return nil, err
+	}
+	// Ensure LibraryID is set (MediaItem usually has it from mapper, but safety first)
+	for _, ep := range episodes {
+		if ep.LibraryID == "" {
+			ep.LibraryID = libID
+		}
 	}
 	if err := s.store.SaveEpisodes(libID, showID, seasonID, episodes); err != nil {
 		s.logger.Error("failed to save episodes", "error", err, "seasonID", seasonID)

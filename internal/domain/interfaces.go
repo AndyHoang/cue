@@ -9,6 +9,9 @@ type ListItem interface {
 	// GetID returns the unique identifier for this item
 	GetID() string
 
+	// GetLibraryID returns the parent library ID
+	GetLibraryID() string
+
 	// GetTitle returns the display title
 	GetTitle() string
 

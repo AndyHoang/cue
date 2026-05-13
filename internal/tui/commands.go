@@ -155,7 +155,7 @@ func ListenForPlaybackStatusCmd(statusCh <-chan string) tea.Cmd {
 }
 
 // MarkWatchedCmd marks an item as watched
-func MarkWatchedCmd(svc *player.Service, itemID, title string) tea.Cmd {
+func MarkWatchedCmd(svc *player.Service, libID, itemID, title string) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
@@ -163,12 +163,12 @@ func MarkWatchedCmd(svc *player.Service, itemID, title string) tea.Cmd {
 		if err := svc.MarkWatched(ctx, itemID); err != nil {
 			return ErrMsg{Err: err, Context: "marking as watched"}
 		}
-		return MarkWatchedMsg{Title: title}
+		return MarkWatchedMsg{Title: title, LibraryID: libID}
 	}
 }
 
 // MarkUnwatchedCmd marks an item as unwatched
-func MarkUnwatchedCmd(svc *player.Service, itemID, title string) tea.Cmd {
+func MarkUnwatchedCmd(svc *player.Service, libID, itemID, title string) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
@@ -176,7 +176,7 @@ func MarkUnwatchedCmd(svc *player.Service, itemID, title string) tea.Cmd {
 		if err := svc.MarkUnwatched(ctx, itemID); err != nil {
 			return ErrMsg{Err: err, Context: "marking as unwatched"}
 		}
-		return MarkUnwatchedMsg{Title: title}
+		return MarkUnwatchedMsg{Title: title, LibraryID: libID}
 	}
 }
 
