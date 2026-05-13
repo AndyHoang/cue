@@ -137,17 +137,17 @@ type Part struct {
 // Stream represents a video, audio, or subtitle stream inside a Plex Part.
 // streamType: 1 = video, 2 = audio, 3 = subtitle.
 type Stream struct {
-	ID                   int    `json:"id"`
-	StreamType           int    `json:"streamType"`
-	Key                  string `json:"key,omitempty"`     // e.g. "/library/streams/12345" for external subs
-	Codec                string `json:"codec,omitempty"`
-	Format               string `json:"format,omitempty"`
-	Language             string `json:"language,omitempty"`
-	LanguageCode         string `json:"languageCode,omitempty"`
-	LanguageTag          string `json:"languageTag,omitempty"`
-	DisplayTitle         string `json:"displayTitle,omitempty"`
-	ExtendedDisplayTitle string `json:"extendedDisplayTitle,omitempty"`
-	Title                string `json:"title,omitempty"`
+	ID                   int      `json:"id"`
+	StreamType           int      `json:"streamType"`
+	Key                  string   `json:"key,omitempty"` // e.g. "/library/streams/12345" for external subs
+	Codec                string   `json:"codec,omitempty"`
+	Format               string   `json:"format,omitempty"`
+	Language             string   `json:"language,omitempty"`
+	LanguageCode         string   `json:"languageCode,omitempty"`
+	LanguageTag          string   `json:"languageTag,omitempty"`
+	DisplayTitle         string   `json:"displayTitle,omitempty"`
+	ExtendedDisplayTitle string   `json:"extendedDisplayTitle,omitempty"`
+	Title                string   `json:"title,omitempty"`
 	Default              flexBool `json:"default,omitempty"`
 	Forced               flexBool `json:"forced,omitempty"`
 	Selected             flexBool `json:"selected,omitempty"`

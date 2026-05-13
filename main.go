@@ -24,7 +24,11 @@ import (
 )
 
 // Version is set at build time via -ldflags
-var Version = "dev"
+var (
+	Version = "dev"
+	Commit  = "none"
+	Date    = "unknown"
+)
 
 // clearSpinnerLine clears the spinner line from the terminal
 const clearSpinnerLine = "\r                                    \r"

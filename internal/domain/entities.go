@@ -161,7 +161,7 @@ func (m *MediaItem) GetRating() float64          { return m.Rating }
 func (m *MediaItem) GetYear() int                { return m.Year }
 func (m *MediaItem) GetAddedAt() int64           { return m.AddedAt }
 func (m *MediaItem) GetUpdatedAt() int64         { return m.UpdatedAt }
-func (m *MediaItem) GetLibraryID() string         { return m.LibraryID }
+func (m *MediaItem) GetLibraryID() string        { return m.LibraryID }
 func (m *MediaItem) GetWatchStatus() WatchStatus { return m.WatchStatus() }
 
 func (m *MediaItem) GetItemType() string {
@@ -243,7 +243,7 @@ func (s *Show) GetYear() int                { return s.Year }
 func (s *Show) GetAddedAt() int64           { return s.AddedAt }
 func (s *Show) GetUpdatedAt() int64         { return s.UpdatedAt }
 func (s *Show) GetItemType() string         { return "show" }
-func (s *Show) GetLibraryID() string         { return s.LibraryID }
+func (s *Show) GetLibraryID() string        { return s.LibraryID }
 func (s *Show) GetWatchStatus() WatchStatus { return s.WatchStatus() }
 
 func (s *Show) GetDescription() string {
@@ -306,7 +306,7 @@ func (s *Season) GetYear() int                { return 0 } // Seasons don't have
 func (s *Season) GetAddedAt() int64           { return 0 }
 func (s *Season) GetUpdatedAt() int64         { return 0 }
 func (s *Season) GetItemType() string         { return "season" }
-func (s *Season) GetLibraryID() string         { return s.LibraryID }
+func (s *Season) GetLibraryID() string        { return s.LibraryID }
 func (s *Season) GetWatchStatus() WatchStatus { return s.WatchStatus() }
 
 func (s *Season) GetDescription() string {
@@ -340,7 +340,7 @@ func (l *Library) GetYear() int                { return 0 }
 func (l *Library) GetAddedAt() int64           { return 0 }
 func (l *Library) GetUpdatedAt() int64         { return l.UpdatedAt }
 func (l *Library) GetItemType() string         { return "library" }
-func (l *Library) GetLibraryID() string         { return l.ID }
+func (l *Library) GetLibraryID() string        { return l.ID }
 func (l *Library) GetWatchStatus() WatchStatus { return WatchStatusUnwatched }
 func (l *Library) GetDescription() string      { return l.Type }
 func (l *Library) CanDrillDown() bool          { return true }
@@ -367,7 +367,7 @@ func (p *Playlist) GetYear() int                { return 0 }
 func (p *Playlist) GetAddedAt() int64           { return 0 }
 func (p *Playlist) GetUpdatedAt() int64         { return p.UpdatedAt }
 func (p *Playlist) GetItemType() string         { return "playlist" }
-func (p *Playlist) GetLibraryID() string         { return "" } // Playlists are global/user-scoped, not library-scoped
+func (p *Playlist) GetLibraryID() string        { return "" } // Playlists are global/user-scoped, not library-scoped
 func (p *Playlist) GetWatchStatus() WatchStatus { return WatchStatusUnwatched }
 
 func (p *Playlist) GetDescription() string {

@@ -19,8 +19,11 @@ builds:
     goarch:
       - amd64
       - arm64
+    flags:
+      - -v
+      - -x
     ldflags:
-      - -s -w -X main.Version={{.Version}}
+      - -s -w -X main.Version={{.Version}} -X main.Commit={{.Commit}} -X main.Date={{.Date}}
 
 archives:
   - formats: [tar.gz]
