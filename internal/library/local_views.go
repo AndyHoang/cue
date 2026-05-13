@@ -13,7 +13,7 @@ func (s *Service) ContinueWatching(limit int) []*domain.MediaItem {
 	items := s.cachedPlayableItems()
 	filtered := make([]*domain.MediaItem, 0, len(items))
 	for _, item := range items {
-		if item.ViewOffset > 0 && !item.IsPlayed {
+		if item.ViewOffset > 0 && item.WatchStatus() != domain.WatchStatusWatched {
 			filtered = append(filtered, item)
 		}
 	}
@@ -43,7 +43,7 @@ func (s *Service) SmartFiltered(filter string, limit int) []*domain.MediaItem {
 				filtered = append(filtered, item)
 			}
 		case "in_progress":
-			if item.ViewOffset > 0 && !item.IsPlayed {
+			if item.ViewOffset > 0 && item.WatchStatus() != domain.WatchStatusWatched {
 				filtered = append(filtered, item)
 			}
 		case "4k":

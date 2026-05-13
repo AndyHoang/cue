@@ -143,9 +143,10 @@ type Model struct {
 	// UI preferences from config
 	UIConfig  config.UIConfig
 	AppConfig *config.Config
-	Version   string
+	Version            string
 
-	pendingPlayback *domain.MediaItem
+	pendingPlayback    *domain.MediaItem
+	PendingSelectionID string // ID of item to select after load completes
 }
 
 // NewModel creates a new application model
@@ -253,7 +254,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Update matching column with movies
 		if col := m.ColumnStack.FindColumn(msg.LibraryID); col != nil {
+			selectedID := m.getSelectedItemID(col)
 			col.SetItems(msg.Movies)
+			if selectedID != "" {
+				col.SetSelectedByID(selectedID)
+			}
 		}
 
 		m.updateInspector()
@@ -282,7 +287,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Update matching column with shows
 		if col := m.ColumnStack.FindColumn(msg.LibraryID); col != nil {
+			selectedID := m.getSelectedItemID(col)
 			col.SetItems(msg.Shows)
+			if selectedID != "" {
+				col.SetSelectedByID(selectedID)
+			}
 		}
 
 		m.updateInspector()
@@ -311,7 +320,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Update matching column with mixed content
 		if col := m.ColumnStack.FindColumn(msg.LibraryID); col != nil {
+			selectedID := m.getSelectedItemID(col)
 			col.SetItems(msg.Items)
+			if selectedID != "" {
+				col.SetSelectedByID(selectedID)
+			}
 		}
 
 		m.updateInspector()
@@ -355,7 +368,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		// Classic path: populate seasons column
+		selectedID := m.getSelectedItemID(top)
 		top.SetItems(msg.Seasons)
+		if selectedID != "" {
+			top.SetSelectedByID(selectedID)
+		}
 		m.updateInspector()
 
 		// Advance nav plan if waiting for this load
@@ -383,7 +400,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !m.validateContentID(msg.SeasonID) {
 			return m, nil
 		}
+		selectedID := m.getSelectedItemID(top)
 		top.SetItems(msg.Episodes)
+		if selectedID != "" {
+			top.SetSelectedByID(selectedID)
+		}
 		m.updateInspector()
 
 		// Advance nav plan if waiting for this load
@@ -421,25 +442,47 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case MarkWatchedMsg:
 		m.StatusMsg = "Marked watched: " + msg.Title
-		// Targeted refresh for the affected library
-		if msg.LibraryID != "" {
-			m.LibraryService.InvalidateLibrary(msg.LibraryID)
-			cmds = append(cmds, m.refreshLibrary(msg.LibraryID))
-		} else {
-			cmds = append(cmds, m.refreshCurrentView())
+		// Update local state for immediate feedback
+		if top := m.ColumnStack.Top(); top != nil {
+			if item := top.SelectedItem(); item != nil {
+				switch v := item.(type) {
+				case *domain.MediaItem:
+					v.IsPlayed = true
+					v.ViewOffset = 0
+				case *domain.Show:
+					v.UnwatchedCount = 0
+				case *domain.Season:
+					v.UnwatchedCount = 0
+				case *components.SeasonHeader:
+					v.Season.UnwatchedCount = 0
+				}
+			}
 		}
+		// Targeted refresh
+		cmds = append(cmds, m.refreshAfterStatusChange(msg.LibraryID))
 		cmds = append(cmds, ClearStatusCmd(3*time.Second))
 		return m, tea.Batch(cmds...)
 
 	case MarkUnwatchedMsg:
 		m.StatusMsg = "Marked unwatched: " + msg.Title
-		// Targeted refresh for the affected library
-		if msg.LibraryID != "" {
-			m.LibraryService.InvalidateLibrary(msg.LibraryID)
-			cmds = append(cmds, m.refreshLibrary(msg.LibraryID))
-		} else {
-			cmds = append(cmds, m.refreshCurrentView())
+		// Update local state for immediate feedback
+		if top := m.ColumnStack.Top(); top != nil {
+			if item := top.SelectedItem(); item != nil {
+				switch v := item.(type) {
+				case *domain.MediaItem:
+					v.IsPlayed = false
+					v.ViewOffset = 0
+				case *domain.Show:
+					v.UnwatchedCount = v.EpisodeCount
+				case *domain.Season:
+					v.UnwatchedCount = v.EpisodeCount
+				case *components.SeasonHeader:
+					v.Season.UnwatchedCount = v.Season.EpisodeCount
+				}
+			}
 		}
+		// Targeted refresh
+		cmds = append(cmds, m.refreshAfterStatusChange(msg.LibraryID))
 		cmds = append(cmds, ClearStatusCmd(3*time.Second))
 		return m, tea.Batch(cmds...)
 
@@ -716,6 +759,19 @@ func (m *Model) refreshCurrentView() tea.Cmd {
 	return LoadLibrariesCmd(m.LibraryService)
 }
 
+// refreshAfterStatusChange handles refreshing the UI after a watch status change.
+// It invalidates the appropriate caches and triggers a reload of the current view.
+func (m *Model) refreshAfterStatusChange(libID string) tea.Cmd {
+	if libID != "" {
+		m.LibraryService.InvalidateLibrary(libID)
+	} else {
+		m.LibraryService.InvalidateAll()
+	}
+
+	// Always refresh the current view to ensure immediate feedback
+	return m.refreshCurrentView()
+}
+
 // refreshLibrary reloads a specific library's content based on its type
 func (m *Model) refreshLibrary(libID string) tea.Cmd {
 	lib := m.findLibrary(libID)
@@ -751,4 +807,16 @@ func (m *Model) updateInspector() {
 	} else {
 		m.Inspector.SetItem(nil)
 	}
+}
+
+// getSelectedItemID returns the ID of the selected item in a column
+func (m Model) getSelectedItemID(c *components.ListColumn) string {
+	if c == nil {
+		return ""
+	}
+	item, ok := c.SelectedItem().(domain.ListItem)
+	if !ok {
+		return ""
+	}
+	return item.GetID()
 }

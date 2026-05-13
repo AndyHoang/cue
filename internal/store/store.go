@@ -371,14 +371,13 @@ func (s *LibraryStore) IsValid(libID string, serverTS int64) bool {
 
 // === Cascade Invalidation (hierarchical prefix deletion) ===
 
-// InvalidateLibrary wipes library content + ALL seasons + ALL episodes in that library
 func (s *LibraryStore) InvalidateLibrary(libID string) {
+	exact := "lib:" + libID
 	prefix := "lib:" + libID + ":"
-	// Delete movies/shows/mixed/ts for this library
+
+	s.delete(bucketContent, exact)
 	s.deletePrefix(bucketContent, prefix)
-	// Delete all seasons for all shows in this library
 	s.deletePrefix(bucketSeasons, prefix)
-	// Delete all episodes for all seasons in this library
 	s.deletePrefix(bucketEpisodes, prefix)
 }
 
