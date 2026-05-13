@@ -167,8 +167,8 @@ func DefaultKeyMap() KeyMap {
 
 		// Confirmations
 		Confirm: key.NewBinding(
-			key.WithKeys("y", "Y"),
-			key.WithHelp("y", "confirm"),
+			key.WithKeys("y", "Y", "enter"),
+			key.WithHelp("y/enter", "confirm"),
 		),
 		Deny: key.NewBinding(
 			key.WithKeys("n", "N"),
