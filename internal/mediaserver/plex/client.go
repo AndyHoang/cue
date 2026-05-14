@@ -671,7 +671,11 @@ func (c *Client) DeletePlaylist(ctx context.Context, playlistID string) error {
 	return nil
 }
 
-// GetContinueWatching returns items that are currently in progress or "on deck"
+// GetContinueWatching returns items that are currently in progress or "on deck".
+// Note: Plex's /library/onDeck follows "next unwatched episode" semantics,
+// which includes episodes you haven't started yet but are next in a show's
+// sequence. This differs from Jellyfin's /Resume which only returns items
+// with an active playback position.
 func (c *Client) GetContinueWatching(ctx context.Context) ([]*domain.MediaItem, error) {
 	body, err := c.doRequest(ctx, http.MethodGet, "/library/onDeck", nil)
 	if err != nil {

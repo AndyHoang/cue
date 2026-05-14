@@ -611,6 +611,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				startIdx = i
 			}
 		}
+		if !msg.Resume {
+			return m, PlayItemCmd(m.PlaybackSvc, *msg.Item, false, m.UIConfig.Autoplay, startIdx, playlist...)
+		}
 		return m.playOrConfirmResume(msg.Item, playlist, startIdx)
 
 	case PlaylistModalDataMsg:

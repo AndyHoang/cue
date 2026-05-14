@@ -67,6 +67,7 @@ type ContinueWatchingLoadedMsg struct {
 type SeasonForPlaybackLoadedMsg struct {
 	Item     *domain.MediaItem
 	Episodes []*domain.MediaItem
+	Resume   bool
 }
 
 // PlaybackStartedMsg signals that playback has started (player launched)

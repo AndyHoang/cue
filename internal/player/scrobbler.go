@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os/exec"
+	"sync"
 	"time"
 
 	"github.com/SuperCoolPencil/cue/internal/domain"
@@ -62,6 +63,7 @@ func (s *Scrobbler) Monitor(ctx context.Context, cmd *exec.Cmd, ipcSocket string
 		var err error
 		var activeItem domain.MediaItem
 		var lastPosMs int64
+		var mu sync.Mutex
 		markedIDs := make(map[string]bool)
 
 		if len(items) > 0 {
@@ -105,26 +107,19 @@ func (s *Scrobbler) Monitor(ctx context.Context, cmd *exec.Cmd, ipcSocket string
 				if mpv != nil {
 					// Detect if item changed (for playlists)
 					if len(items) > 1 {
-						if _, err := mpv.GetPath(); err == nil {
-
-							// Find which item matches this path
-							// We might need a map of URL -> Item, but URLs are resolved lazily.
-							// For now, we'll match by Title if path is complex, or we can improve this later.
-							// Actually, if we resolved URLs upfront, we can match exactly.
-							// Let's assume for now the order in 'items' matches the playlist order.
-							if pos, err := mpv.GetProperty("playlist-pos"); err == nil {
-								if idx, ok := pos.(float64); ok && int(idx) < len(items) {
-									newIdx := int(idx)
-									newItem := items[newIdx]
-									if newItem.ID != activeItem.ID {
-										s.logger.Info("playlist item changed", "from", activeItem.Title, "to", newItem.Title)
-										// Mark all previous items in the playlist as watched
-										s.markPreviousWatched(items, newIdx, markedIDs)
-										activeItem = newItem
-									}
+						// Find which item matches this path
+						// We assume for now the order in 'items' matches the playlist order.
+						if pos, err := mpv.GetProperty("playlist-pos"); err == nil {
+							if idx, ok := pos.(float64); ok && int(idx) < len(items) {
+								newIdx := int(idx)
+								newItem := items[newIdx]
+								if newItem.ID != activeItem.ID {
+									s.logger.Info("playlist item changed", "from", activeItem.Title, "to", newItem.Title)
+									// Mark all previous items in the playlist as watched
+									s.markPreviousWatched(items, newIdx, markedIDs, &mu)
+									activeItem = newItem
 								}
 							}
-
 						}
 					}
 
@@ -147,7 +142,6 @@ func (s *Scrobbler) Monitor(ctx context.Context, cmd *exec.Cmd, ipcSocket string
 						}(activeItem, lastPosMs)
 					}
 				}
-
 			}
 		}
 
@@ -175,16 +169,17 @@ func (s *Scrobbler) Monitor(ctx context.Context, cmd *exec.Cmd, ipcSocket string
 				defer cancel()
 				if err := s.client.MarkPlayed(markCtx, activeItem.ID); err == nil {
 					autoMarked = true
+					mu.Lock()
 					markedIDs[activeItem.ID] = true
+					mu.Unlock()
 					// Find current index and mark all previous
 					for i, it := range items {
 						if it.ID == activeItem.ID {
-							s.markPreviousWatched(items, i, markedIDs)
+							s.markPreviousWatched(items, i, markedIDs, &mu)
 							break
 						}
 					}
 				}
-
 			}
 		}
 
@@ -204,20 +199,28 @@ func (s *Scrobbler) Monitor(ctx context.Context, cmd *exec.Cmd, ipcSocket string
 	}
 }
 
-func (s *Scrobbler) markPreviousWatched(items []domain.MediaItem, currentIdx int, markedIDs map[string]bool) {
-	for i := 0; i < currentIdx; i++ {
-		item := items[i]
-		if item.IsPlayed || markedIDs[item.ID] {
-			continue
-		}
-		markedIDs[item.ID] = true
-		s.logger.Info("bulk-marking previous item watched", "item", item.Title)
-		go func(it domain.MediaItem) {
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-			if err := s.client.MarkPlayed(ctx, it.ID); err != nil {
-				s.logger.Warn("failed to mark previous item watched", "item", it.Title, "error", err)
+func (s *Scrobbler) markPreviousWatched(items []domain.MediaItem, currentIdx int, markedIDs map[string]bool, mu *sync.Mutex) {
+	// Mark items sequentially in a single background goroutine to avoid flooding the server
+	go func() {
+		for i := 0; i < currentIdx; i++ {
+			item := items[i]
+			mu.Lock()
+			if item.IsPlayed || markedIDs[item.ID] {
+				mu.Unlock()
+				continue
 			}
-		}(item)
-	}
+			markedIDs[item.ID] = true
+			mu.Unlock()
+
+			s.logger.Info("bulk-marking previous item watched", "item", item.Title)
+
+			func() {
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+				if err := s.client.MarkPlayed(ctx, item.ID); err != nil {
+					s.logger.Warn("failed to mark previous item watched", "item", item.Title, "error", err)
+				}
+			}()
+		}
+	}()
 }

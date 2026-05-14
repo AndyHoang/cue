@@ -371,32 +371,46 @@ func (s *Service) playItem(ctx context.Context, offset time.Duration, playlistSt
 	}
 
 	playableMedias := make([]domain.PlayableMedia, 0, len(allPlaybackItems))
+	filteredPlaybackItems := make([]domain.MediaItem, 0, len(allPlaybackItems))
 
 	for _, pItem := range allPlaybackItems {
 		media, err := s.playback.ResolvePlayable(ctx, pItem.ID)
 		if err != nil {
-			// If resolving the first item fails, we abort.
-			// If subsequent items fail, we might want to continue, but for now let's be strict.
 			s.logger.Error("failed to resolve playable URL", "error", err, "itemID", pItem.ID)
+			// If resolving the first item fails, we abort the whole launch.
 			if pItem.ID == item.ID {
 				return PlaybackHandle{}, err
 			}
+			// Skip this item but keep going with the rest of the playlist.
+			// We MUST skip the corresponding entry in filteredPlaybackItems too.
 			continue
 		}
 		playableMedias = append(playableMedias, media)
+		filteredPlaybackItems = append(filteredPlaybackItems, pItem)
+	}
+
+	// Adjust playlistStart if items were skipped before the starting item.
+	// Actually, if 'item' is resolved successfully, playlistStart should be
+	// recalculated based on its new position in filteredPlaybackItems.
+	actualStartIdx := 0
+	for i, pItem := range filteredPlaybackItems {
+		if pItem.ID == item.ID {
+			actualStartIdx = i
+			break
+		}
 	}
 
 	s.logger.Info("launching playback",
-		"title", item.Title, "itemID", item.ID, "offset", offset, "playlistSize", len(playableMedias), "startIdx", playlistStart)
+		"title", item.Title, "itemID", item.ID, "offset", offset, "playlistSize", len(playableMedias), "startIdx", actualStartIdx)
 
-	cmd, ipcSocket, err := s.launcher.Launch(offset, playlistStart, playableMedias...)
+	cmd, ipcSocket, err := s.launcher.Launch(offset, actualStartIdx, playableMedias...)
 
 	if err != nil {
 		return PlaybackHandle{}, err
 	}
 
-	// Start monitoring progress for all items in the playlist
-	return s.scrobbler.Monitor(ctx, cmd, ipcSocket, playlistStart, allPlaybackItems...), nil
+	// Start monitoring progress for all resolved items
+	return s.scrobbler.Monitor(ctx, cmd, ipcSocket, actualStartIdx, filteredPlaybackItems...), nil
 }
 
 // MarkWatched marks an item as fully watched

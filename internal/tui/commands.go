@@ -120,7 +120,7 @@ func LoadContinueWatchingCmd(svc *library.Service) tea.Cmd {
 }
 
 // LoadSeasonForPlaybackCmd loads all episodes for an episode's season to build a full playlist
-func LoadSeasonForPlaybackCmd(svc *library.Service, item *domain.MediaItem) tea.Cmd {
+func LoadSeasonForPlaybackCmd(svc *library.Service, item *domain.MediaItem, resume bool) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
@@ -134,22 +134,30 @@ func LoadSeasonForPlaybackCmd(svc *library.Service, item *domain.MediaItem) tea.
 		if err != nil {
 			return ErrMsg{Err: err, Context: "loading season for playback"}
 		}
-		return SeasonForPlaybackLoadedMsg{Item: item, Episodes: episodes}
+		return SeasonForPlaybackLoadedMsg{Item: item, Episodes: episodes, Resume: resume}
 	}
 }
 
 // PlayItemCmd starts playback of an item, optionally with a playlist and start index
-func PlayItemCmd(svc *player.Service, item domain.MediaItem, resume bool, playlistStart int, playlist ...domain.MediaItem) tea.Cmd {
+func PlayItemCmd(svc *player.Service, item domain.MediaItem, resume bool, autoplay bool, playlistStart int, playlist ...domain.MediaItem) tea.Cmd {
 
 	return func() tea.Msg {
 		ctx := context.Background()
 
+		// If autoplay is disabled, we only play the single item
+		actualPlaylist := playlist
+		actualStartIdx := playlistStart
+		if !autoplay && len(playlist) > 0 {
+			actualPlaylist = []domain.MediaItem{item}
+			actualStartIdx = 0
+		}
+
 		var handle player.PlaybackHandle
 		var err error
 		if resume {
-			handle, err = svc.Resume(ctx, item, playlistStart, playlist...)
+			handle, err = svc.Resume(ctx, item, actualStartIdx, actualPlaylist...)
 		} else {
-			handle, err = svc.Play(ctx, item, playlistStart, playlist...)
+			handle, err = svc.Play(ctx, item, actualStartIdx, actualPlaylist...)
 		}
 
 		if err != nil {
