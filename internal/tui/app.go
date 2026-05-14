@@ -428,7 +428,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, ListenForPlaybackStatusCmd(msg.StatusCh)
 
 	case PlaybackFinishedMsg:
-		m.isPlayingTitle = ""
 		if msg.Err != nil {
 			m.StatusMsg = "Playback error: " + msg.Err.Error()
 			m.StatusIsErr = true
@@ -439,7 +438,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		// Only clear status if we're NOT playing another title
-		if m.isPlayingTitle == "" {
+		if m.isPlayingTitle != "" {
+			m.isPlayingTitle = ""
 			cmds = append(cmds, ClearStatusCmd(3*time.Second))
 		}
 
