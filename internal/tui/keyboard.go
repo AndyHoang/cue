@@ -40,20 +40,18 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, Keys.Confirm):
 			item := *m.pendingPlayback
 			playlist := m.pendingPlaylist
-			startIdx := m.pendingPlaylistStart
 			m.pendingPlayback = nil
 			m.pendingPlaylist = nil
 			m.State = StateBrowsing
-			return m, PlayItemCmd(m.PlaybackSvc, item, true, m.UIConfig.Autoplay, startIdx, playlist...)
+			return m, PlayItemCmd(m.PlaybackSvc, item, true, m.UIConfig.Autoplay, playlist...)
 
 		case key.Matches(msg, Keys.Deny):
 			item := *m.pendingPlayback
 			playlist := m.pendingPlaylist
-			startIdx := m.pendingPlaylistStart
 			m.pendingPlayback = nil
 			m.pendingPlaylist = nil
 			m.State = StateBrowsing
-			return m, PlayItemCmd(m.PlaybackSvc, item, false, m.UIConfig.Autoplay, startIdx, playlist...)
+			return m, PlayItemCmd(m.PlaybackSvc, item, false, m.UIConfig.Autoplay, playlist...)
 
 		case key.Matches(msg, Keys.Escape):
 			m.pendingPlayback = nil
@@ -453,25 +451,24 @@ func (m Model) playItemWithContext(top *components.ListColumn, item *domain.Medi
 		return m, LoadSeasonForPlaybackCmd(m.LibraryService, item, resume)
 	}
 
-	playlist, startIdx := top.GetSeasonPlaylist()
+	playlist, _ := top.GetSeasonPlaylist()
 	if !resume {
-		return m, PlayItemCmd(m.PlaybackSvc, *item, false, m.UIConfig.Autoplay, startIdx, playlist...)
+		return m, PlayItemCmd(m.PlaybackSvc, *item, false, m.UIConfig.Autoplay, playlist...)
 	}
-	return m.playOrConfirmResume(item, playlist, startIdx)
+	return m.playOrConfirmResume(item, playlist)
 }
 
-func (m Model) playOrConfirmResume(item *domain.MediaItem, playlist []domain.MediaItem, startIdx int) (tea.Model, tea.Cmd) {
+func (m Model) playOrConfirmResume(item *domain.MediaItem, playlist []domain.MediaItem) (tea.Model, tea.Cmd) {
 	if item == nil {
 		return m, nil
 	}
 	if item.ShouldResume() {
 		m.pendingPlayback = item
 		m.pendingPlaylist = playlist
-		m.pendingPlaylistStart = startIdx
 		m.State = StateConfirmResume
 		return m, nil
 	}
-	return m, PlayItemCmd(m.PlaybackSvc, *item, false, m.UIConfig.Autoplay, startIdx, playlist...)
+	return m, PlayItemCmd(m.PlaybackSvc, *item, false, m.UIConfig.Autoplay, playlist...)
 }
 
 // handleToggleInspector toggles the inspector panel visibility or focuses it
@@ -589,8 +586,8 @@ func (m Model) handleNextEpisode() (tea.Model, tea.Cmd) {
 	for i := top.SelectedIndex(); i < count; i++ {
 		top.SetSelectedIndex(i)
 		if item := top.SelectedMediaItem(); item != nil && !item.IsPlayed {
-			playlist, startIdx := top.GetSeasonPlaylist()
-			return m.playOrConfirmResume(item, playlist, startIdx)
+			playlist, _ := top.GetSeasonPlaylist()
+			return m.playOrConfirmResume(item, playlist)
 		}
 
 	}

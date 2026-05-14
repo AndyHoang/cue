@@ -146,10 +146,9 @@ type Model struct {
 	AppConfig *config.Config
 	Version   string
 
-	pendingPlayback      *domain.MediaItem
-	pendingPlaylist      []domain.MediaItem
-	pendingPlaylistStart int
-	PendingSelectionID   string // ID of item to select after load completes
+	pendingPlayback    *domain.MediaItem
+	pendingPlaylist    []domain.MediaItem
+	PendingSelectionID string // ID of item to select after load completes
 }
 
 // NewModel creates a new application model
@@ -604,18 +603,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case SeasonForPlaybackLoadedMsg:
 		m.Loading = false
-		startIdx := 0
 		playlist := make([]domain.MediaItem, len(msg.Episodes))
 		for i, ep := range msg.Episodes {
 			playlist[i] = *ep
-			if ep.ID == msg.Item.ID {
-				startIdx = i
-			}
 		}
 		if !msg.Resume {
-			return m, PlayItemCmd(m.PlaybackSvc, *msg.Item, false, m.UIConfig.Autoplay, startIdx, playlist...)
+			return m, PlayItemCmd(m.PlaybackSvc, *msg.Item, false, m.UIConfig.Autoplay, playlist...)
 		}
-		return m.playOrConfirmResume(msg.Item, playlist, startIdx)
+		return m.playOrConfirmResume(msg.Item, playlist)
 
 	case PlaylistModalDataMsg:
 		m.PlaylistModal.Show(msg.Playlists, msg.Membership, msg.Item)
@@ -801,24 +796,6 @@ func (m *Model) refreshAfterStatusChange(libID string) tea.Cmd {
 
 	// Always refresh the current view to ensure immediate feedback
 	return m.refreshCurrentView()
-}
-
-// refreshLibrary reloads a specific library's content based on its type
-func (m *Model) refreshLibrary(libID string) tea.Cmd {
-	lib := m.findLibrary(libID)
-	if lib == nil {
-		return m.refreshCurrentView()
-	}
-
-	m.Loading = true
-	switch lib.Type {
-	case "movie":
-		return LoadMoviesCmd(m.LibraryService, lib.ID)
-	case "show":
-		return LoadShowsCmd(m.LibraryService, lib.ID)
-	default:
-		return LoadMixedLibraryCmd(m.LibraryService, lib.ID)
-	}
 }
 
 // findLibrary finds a library by ID

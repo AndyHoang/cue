@@ -790,21 +790,6 @@ func (c *ListColumn) applyFilter() {
 	}
 }
 
-func (c *ListColumn) getFilterValues() []string {
-	count := c.sortedCount()
-	titles := make([]string, count)
-	for i := 0; i < count; i++ {
-		rawIdx := i
-		if c.sortedIdx != nil && i < len(c.sortedIdx) {
-			rawIdx = c.sortedIdx[i]
-		}
-		if rawIdx < len(c.items) {
-			titles[i] = c.items[rawIdx].GetTitle()
-		}
-	}
-	return titles
-}
-
 func (c *ListColumn) sortedCount() int {
 	if c.sortedIdx != nil {
 		return len(c.sortedIdx)

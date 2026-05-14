@@ -356,23 +356,22 @@ func NewService(launcher *Launcher, playback domain.PlaybackClient, logger *slog
 }
 
 // Play starts playback of a media item from the beginning
-func (s *Service) Play(ctx context.Context, item domain.MediaItem, playlistStart int, playlist ...domain.MediaItem) (PlaybackHandle, error) {
-	return s.playItem(ctx, 0, playlistStart, item, playlist...)
+func (s *Service) Play(ctx context.Context, item domain.MediaItem, playlist ...domain.MediaItem) (PlaybackHandle, error) {
+	return s.playItem(ctx, 0, item, playlist...)
 }
 
 // Resume starts playback from the saved position
-func (s *Service) Resume(ctx context.Context, item domain.MediaItem, playlistStart int, playlist ...domain.MediaItem) (PlaybackHandle, error) {
-	return s.playItem(ctx, item.ViewOffset, playlistStart, item, playlist...)
+func (s *Service) Resume(ctx context.Context, item domain.MediaItem, playlist ...domain.MediaItem) (PlaybackHandle, error) {
+	return s.playItem(ctx, item.ViewOffset, item, playlist...)
 }
 
 // playItem resolves URLs and launches player
-func (s *Service) playItem(ctx context.Context, offset time.Duration, playlistStart int, item domain.MediaItem, playlist ...domain.MediaItem) (PlaybackHandle, error) {
+func (s *Service) playItem(ctx context.Context, offset time.Duration, item domain.MediaItem, playlist ...domain.MediaItem) (PlaybackHandle, error) {
 	var allPlaybackItems []domain.MediaItem
 	if len(playlist) > 0 {
 		allPlaybackItems = playlist
 	} else {
 		allPlaybackItems = []domain.MediaItem{item}
-		playlistStart = 0
 	}
 
 	playableMedias := make([]domain.PlayableMedia, 0, len(allPlaybackItems))

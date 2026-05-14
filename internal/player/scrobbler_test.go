@@ -58,14 +58,14 @@ func TestScrobbler(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	socketPath := filepath.Join(tmpDir, "mpv.sock")
 	l, err := net.Listen("unix", socketPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer l.Close()
+	defer func() { _ = l.Close() }()
 
 	// Mock server state
 	serverState := struct {
@@ -84,7 +84,7 @@ func TestScrobbler(t *testing.T) {
 				return
 			}
 			go func(c net.Conn) {
-				defer c.Close()
+				defer func() { _ = c.Close() }()
 				dec := json.NewDecoder(c)
 				for {
 					var req struct {
@@ -118,7 +118,7 @@ func TestScrobbler(t *testing.T) {
 						"error":      "success",
 						"request_id": req.RequestID,
 					})
-					c.Write(append(res, '\n'))
+					_, _ = c.Write(append(res, '\n'))
 				}
 			}(conn)
 		}
@@ -175,7 +175,7 @@ func TestScrobbler(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 	cancel() // Stop monitoring
-	cmd.Process.Kill()
+	_ = cmd.Process.Kill()
 
 	select {
 	case res := <-handle.ResultCh:

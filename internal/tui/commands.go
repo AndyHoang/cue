@@ -138,8 +138,8 @@ func LoadSeasonForPlaybackCmd(svc *library.Service, item *domain.MediaItem, resu
 	}
 }
 
-// PlayItemCmd starts playback of an item, optionally with a playlist and start index
-func PlayItemCmd(svc *player.Service, item domain.MediaItem, resume bool, autoplay bool, playlistStart int, playlist ...domain.MediaItem) tea.Cmd {
+// PlayItemCmd starts playback of an item, optionally with a playlist
+func PlayItemCmd(svc *player.Service, item domain.MediaItem, resume bool, autoplay bool, playlist ...domain.MediaItem) tea.Cmd {
 
 	return func() tea.Msg {
 		ctx := context.Background()
@@ -150,18 +150,16 @@ func PlayItemCmd(svc *player.Service, item domain.MediaItem, resume bool, autopl
 		// The logic below ensures that if autoplay is disabled, we always launch a
 		// single-item playlist, regardless of whether it's a fresh play or a resume.
 		actualPlaylist := playlist
-		actualStartIdx := playlistStart
 		if !autoplay && len(playlist) > 0 {
 			actualPlaylist = []domain.MediaItem{item}
-			actualStartIdx = 0
 		}
 
 		var handle player.PlaybackHandle
 		var err error
 		if resume {
-			handle, err = svc.Resume(ctx, item, actualStartIdx, actualPlaylist...)
+			handle, err = svc.Resume(ctx, item, actualPlaylist...)
 		} else {
-			handle, err = svc.Play(ctx, item, actualStartIdx, actualPlaylist...)
+			handle, err = svc.Play(ctx, item, actualPlaylist...)
 		}
 
 		if err != nil {
