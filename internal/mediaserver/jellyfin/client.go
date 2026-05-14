@@ -485,49 +485,15 @@ func (c *Client) GetMediaItem(ctx context.Context, itemID string) (*domain.Media
 // MarkPlayed marks an item as fully watched
 func (c *Client) MarkPlayed(ctx context.Context, itemID string) error {
 	path := fmt.Sprintf("/Users/%s/PlayedItems/%s", c.userID, itemID)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, nil)
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("X-Emby-Authorization", buildAuthHeader(c.token))
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return domain.ErrServerOffline
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("failed to mark as played: status %d", resp.StatusCode)
-	}
-
-	return nil
+	_, err := c.doRequest(ctx, http.MethodPost, path, nil)
+	return err
 }
 
 // MarkUnplayed marks an item as unwatched
 func (c *Client) MarkUnplayed(ctx context.Context, itemID string) error {
 	path := fmt.Sprintf("/Users/%s/PlayedItems/%s", c.userID, itemID)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.baseURL+path, nil)
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("X-Emby-Authorization", buildAuthHeader(c.token))
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return domain.ErrServerOffline
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("failed to mark as unplayed: status %d", resp.StatusCode)
-	}
-
-	return nil
+	_, err := c.doRequest(ctx, http.MethodDelete, path, nil)
+	return err
 }
 
 // UpdateProgress reports the current playback position to the server

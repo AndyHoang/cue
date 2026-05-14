@@ -456,6 +456,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case *domain.MediaItem:
 					v.IsPlayed = true
 					v.ViewOffset = 0
+					// Propagate to parents in the stack
+					m.propagateWatchStatus(v, true)
 				case *domain.Show:
 					v.UnwatchedCount = 0
 				case *domain.Season:
@@ -465,8 +467,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
-		// Targeted refresh
-		cmds = append(cmds, m.refreshAfterStatusChange(msg.LibraryID))
+		// Delayed targeted refresh to avoid stale data flicker
+		cmds = append(cmds, tea.Tick(500*time.Millisecond, func(t time.Time) tea.Msg {
+			return RefreshCurrentMsg{LibraryID: msg.LibraryID}
+		}))
 		cmds = append(cmds, ClearStatusCmd(3*time.Second))
 		return m, tea.Batch(cmds...)
 
@@ -479,6 +483,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case *domain.MediaItem:
 					v.IsPlayed = false
 					v.ViewOffset = 0
+					// Propagate to parents in the stack
+					m.propagateWatchStatus(v, false)
 				case *domain.Show:
 					v.UnwatchedCount = v.EpisodeCount
 				case *domain.Season:
@@ -488,8 +494,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
-		// Targeted refresh
-		cmds = append(cmds, m.refreshAfterStatusChange(msg.LibraryID))
+		// Delayed targeted refresh to avoid stale data flicker
+		cmds = append(cmds, tea.Tick(500*time.Millisecond, func(t time.Time) tea.Msg {
+			return RefreshCurrentMsg{LibraryID: msg.LibraryID}
+		}))
 		cmds = append(cmds, ClearStatusCmd(3*time.Second))
 		return m, tea.Batch(cmds...)
 
@@ -681,6 +689,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, ClearStatusCmd(3*time.Second))
 		}
 		return m, tea.Batch(cmds...)
+
+	case RefreshCurrentMsg:
+		return m, m.refreshAfterStatusChange(msg.LibraryID)
 	}
 
 	// Update the focused column (top of stack)
@@ -721,7 +732,11 @@ func (m *Model) updateLibraryStates() {
 
 // refreshCurrentView refreshes the current view
 func (m *Model) refreshCurrentView() tea.Cmd {
-	m.LibraryService.InvalidateAll()
+	if m.currentLibID != "" {
+		m.LibraryService.InvalidateLibrary(m.currentLibID)
+	} else {
+		m.LibraryService.InvalidateAll()
+	}
 	m.Loading = true
 
 	top := m.ColumnStack.Top()
@@ -790,12 +805,50 @@ func (m *Model) refreshCurrentView() tea.Cmd {
 func (m *Model) refreshAfterStatusChange(libID string) tea.Cmd {
 	if libID != "" {
 		m.LibraryService.InvalidateLibrary(libID)
-	} else {
-		m.LibraryService.InvalidateAll()
 	}
 
-	// Always refresh the current view to ensure immediate feedback
+	// Targeted refresh of current view
 	return m.refreshCurrentView()
+}
+
+// propagateWatchStatus updates parent items in the column stack when an episode's status changes
+func (m *Model) propagateWatchStatus(item *domain.MediaItem, watched bool) {
+	if item.Type != domain.MediaTypeEpisode {
+		return
+	}
+
+	delta := 1
+	if watched {
+		delta = -1
+	}
+
+	for i := 0; i < m.ColumnStack.Len(); i++ {
+		col := m.ColumnStack.Get(i)
+		for _, listItem := range col.Items() {
+			switch v := listItem.(type) {
+			case *domain.Show:
+				if v.ID == item.ShowID {
+					v.UnwatchedCount += delta
+					if v.UnwatchedCount < 0 {
+						v.UnwatchedCount = 0
+					}
+					if v.UnwatchedCount > v.EpisodeCount {
+						v.UnwatchedCount = v.EpisodeCount
+					}
+				}
+			case *domain.Season:
+				if v.ID == item.ParentID {
+					v.UnwatchedCount += delta
+					if v.UnwatchedCount < 0 {
+						v.UnwatchedCount = 0
+					}
+					if v.UnwatchedCount > v.EpisodeCount {
+						v.UnwatchedCount = v.EpisodeCount
+					}
+				}
+			}
+		}
+	}
 }
 
 // findLibrary finds a library by ID

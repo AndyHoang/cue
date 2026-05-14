@@ -329,10 +329,19 @@ func (c *ListColumn) IsLoading() bool {
 	return c.loading
 }
 
+// SetItems updates the items in the column and preserves selection if possible
 func (c *ListColumn) SetItems(rawItems interface{}) {
 	c.loading = false
-	c.cursor = 0
-	c.offset = 0
+
+	// Remember currently selected ID to restore cursor
+	var selectedID string
+	if c.cursor >= 0 && c.cursor < c.ItemCount() {
+		rawIdx := c.mapIndex(c.cursor)
+		if rawIdx >= 0 && rawIdx < len(c.items) {
+			selectedID = c.items[rawIdx].GetID()
+		}
+	}
+
 	c.clearFilter()
 	c.sortedIdx = nil
 
@@ -383,6 +392,43 @@ func (c *ListColumn) SetItems(rawItems interface{}) {
 		c.sortDir = SortAsc
 		c.sortedIdx = nil
 	}
+
+	// Restore selection by ID
+	if selectedID != "" {
+		rawIdx := -1
+		for i, item := range c.items {
+			if li, ok := item.(domain.ListItem); ok && li.GetID() == selectedID {
+				rawIdx = i
+				break
+			}
+		}
+
+		if rawIdx != -1 {
+			// Find which display index maps to this raw index
+			count := c.ItemCount()
+			found := false
+			for i := 0; i < count; i++ {
+				if c.mapIndex(i) == rawIdx {
+					c.cursor = i
+					found = true
+					break
+				}
+			}
+			if !found {
+				c.cursor = 0
+				c.offset = 0
+			}
+		} else {
+			// If previously selected item is gone, reset to top
+			c.cursor = 0
+			c.offset = 0
+		}
+	} else {
+		c.cursor = 0
+		c.offset = 0
+	}
+
+	c.ensureVisible()
 }
 
 // Additional methods

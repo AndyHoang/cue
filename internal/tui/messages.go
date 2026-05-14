@@ -184,3 +184,8 @@ type QueueUpdatedMsg struct {
 	Message string
 	Error   error
 }
+
+// RefreshCurrentMsg triggers a refresh of the current view
+type RefreshCurrentMsg struct {
+	LibraryID string
+}

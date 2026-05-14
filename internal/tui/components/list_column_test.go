@@ -111,3 +111,49 @@ func TestGetSeasonPlaylist(t *testing.T) {
 		t.Errorf("expected ep1 at index 0, got %s", playlist[0].ID)
 	}
 }
+
+func TestListColumnSetItemsPreservesSelection(t *testing.T) {
+	col := NewListColumn(ColumnTypeMovies, "Movies")
+	col.SetItems([]*domain.MediaItem{
+		{ID: "1", Title: "Movie 1"},
+		{ID: "2", Title: "Movie 2"},
+		{ID: "3", Title: "Movie 3"},
+	})
+
+	// Select second item
+	col.SetSelectedIndex(1)
+	if col.SelectedMediaItem().ID != "2" {
+		t.Fatalf("expected ID 2, got %s", col.SelectedMediaItem().ID)
+	}
+
+	// Update items with same IDs but different titles/status
+	col.SetItems([]*domain.MediaItem{
+		{ID: "1", Title: "Movie 1 (Updated)"},
+		{ID: "2", Title: "Movie 2 (Updated)"},
+		{ID: "3", Title: "Movie 3 (Updated)"},
+	})
+
+	// Cursor should still be at 1, pointing to ID "2"
+	if col.SelectedIndex() != 1 {
+		t.Fatalf("expected cursor 1, got %d", col.SelectedIndex())
+	}
+	if col.SelectedMediaItem().ID != "2" {
+		t.Fatalf("expected ID 2, got %s", col.SelectedMediaItem().ID)
+	}
+
+	// Update with different order
+	col.SetItems([]*domain.MediaItem{
+		{ID: "3", Title: "Movie 3"},
+		{ID: "1", Title: "Movie 1"},
+		{ID: "2", Title: "Movie 2"},
+	})
+
+	// ID "2" ("Movie 2") should be at display index 1 due to Title Asc sorting
+	// (ID 1: "Movie 1", ID 2: "Movie 2", ID 3: "Movie 3")
+	if col.SelectedIndex() != 1 {
+		t.Fatalf("expected cursor 1, got %d", col.SelectedIndex())
+	}
+	if col.SelectedMediaItem().ID != "2" {
+		t.Fatalf("expected ID 2, got %s", col.SelectedMediaItem().ID)
+	}
+}
