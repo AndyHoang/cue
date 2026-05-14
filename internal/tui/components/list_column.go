@@ -657,8 +657,6 @@ func (c *ListColumn) GetSeasonPlaylist() (playlist []domain.MediaItem, selectedI
 	return playlist, selectedIdx
 }
 
-
-
 // IsFiltering returns true if filter mode is active
 func (c *ListColumn) IsFiltering() bool {
 	return c.filterActive

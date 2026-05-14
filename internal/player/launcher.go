@@ -69,23 +69,17 @@ func NewLauncher(command string, args []string, seekFlag string, logger *slog.Lo
 func (l *Launcher) Launch(offset time.Duration, playlistStart int, media ...domain.PlayableMedia) (*exec.Cmd, string, error) {
 	offsetSecs := int(offset.Seconds())
 
-
-
 	// Tier 1: User configured a specific player
 	if l.command != "" {
 		l.logger.Info("using configured player", "command", l.command)
 		return l.launchConfigured(offsetSecs, playlistStart, media...)
 	}
 
-
-
 	// Tier 2: Auto-detect known players
 	if player, found := l.detectPlayer(); found {
 		l.logger.Info("auto-detected player", "binary", player.Binary)
 		return l.execPlayer(player, offsetSecs, playlistStart, media...)
 	}
-
-
 
 	// Tier 3: System default fallback (xdg-open/open)
 	l.logger.Warn("no video players found, falling back to system default")
@@ -176,7 +170,6 @@ func (l *Launcher) execPlayer(player PlayerDef, offsetSecs int, playlistStart in
 	args := []string{}
 	var ipcSocket string
 
-
 	// Enable IPC for mpv
 	if player.Binary == "mpv" {
 		ipcSocket = newMPVSocketPath()
@@ -185,7 +178,6 @@ func (l *Launcher) execPlayer(player PlayerDef, offsetSecs int, playlistStart in
 			args = append(args, fmt.Sprintf("--playlist-start=%d", playlistStart))
 		}
 	}
-
 
 	// Add seek flag if we have an offset and the player supports it
 	if offsetSecs > 0 && player.SeekFlag != "" {
@@ -207,7 +199,6 @@ func (l *Launcher) execPlayer(player PlayerDef, offsetSecs int, playlistStart in
 		args = append(args, m.URL)
 	}
 
-
 	l.logger.Debug("executing player", "binary", player.Binary, "args", args)
 	cmd := exec.Command(player.Binary, args...)
 	if err := cmd.Start(); err != nil {
@@ -218,7 +209,6 @@ func (l *Launcher) execPlayer(player PlayerDef, offsetSecs int, playlistStart in
 
 // launchConfigured launches the media using the user-configured player
 func (l *Launcher) launchConfigured(offsetSecs int, playlistStart int, media ...domain.PlayableMedia) (*exec.Cmd, string, error) {
-
 
 	args := append([]string{}, l.args...)
 
@@ -251,7 +241,6 @@ func (l *Launcher) launchConfigured(offsetSecs int, playlistStart int, media ...
 	for _, m := range media {
 		args = append(args, m.URL)
 	}
-
 
 	l.logger.Debug("launching configured player", "command", l.command, "args", args)
 
@@ -366,14 +355,10 @@ func (s *Service) Play(ctx context.Context, item domain.MediaItem, playlistStart
 	return s.playItem(ctx, 0, playlistStart, item, playlist...)
 }
 
-
-
 // Resume starts playback from the saved position
 func (s *Service) Resume(ctx context.Context, item domain.MediaItem, playlistStart int, playlist ...domain.MediaItem) (PlaybackHandle, error) {
 	return s.playItem(ctx, item.ViewOffset, playlistStart, item, playlist...)
 }
-
-
 
 // playItem resolves URLs and launches player
 func (s *Service) playItem(ctx context.Context, offset time.Duration, playlistStart int, item domain.MediaItem, playlist ...domain.MediaItem) (PlaybackHandle, error) {
@@ -386,11 +371,10 @@ func (s *Service) playItem(ctx context.Context, offset time.Duration, playlistSt
 
 	playableMedias := make([]domain.PlayableMedia, 0, len(allPlaybackItems))
 
-
 	for _, pItem := range allPlaybackItems {
 		media, err := s.playback.ResolvePlayable(ctx, pItem.ID)
 		if err != nil {
-			// If resolving the first item fails, we abort. 
+			// If resolving the first item fails, we abort.
 			// If subsequent items fail, we might want to continue, but for now let's be strict.
 			s.logger.Error("failed to resolve playable URL", "error", err, "itemID", pItem.ID)
 			if pItem.ID == item.ID {
@@ -410,11 +394,9 @@ func (s *Service) playItem(ctx context.Context, offset time.Duration, playlistSt
 		return PlaybackHandle{}, err
 	}
 
-
 	// Start monitoring progress for all items in the playlist
 	return s.scrobbler.Monitor(ctx, cmd, ipcSocket, allPlaybackItems...), nil
 }
-
 
 // MarkWatched marks an item as fully watched
 func (s *Service) MarkWatched(ctx context.Context, itemID string) error {

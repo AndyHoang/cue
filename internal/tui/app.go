@@ -441,11 +441,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, ClearStatusCmd(3*time.Second))
 		}
 
-
 		// Refresh view to update watch status indicators
 		cmds = append(cmds, m.refreshCurrentView())
 		return m, tea.Batch(cmds...)
-
 
 	case MarkWatchedMsg:
 		m.StatusMsg = "Marked watched: " + msg.Title

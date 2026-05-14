@@ -122,7 +122,6 @@ func LoadContinueWatchingCmd(svc *library.Service) tea.Cmd {
 // PlayItemCmd starts playback of an item, optionally with a playlist and start index
 func PlayItemCmd(svc *player.Service, item domain.MediaItem, resume bool, playlistStart int, playlist ...domain.MediaItem) tea.Cmd {
 
-
 	return func() tea.Msg {
 		ctx := context.Background()
 
@@ -133,7 +132,6 @@ func PlayItemCmd(svc *player.Service, item domain.MediaItem, resume bool, playli
 		} else {
 			handle, err = svc.Play(ctx, item, playlistStart, playlist...)
 		}
-
 
 		if err != nil {
 			return ErrMsg{Err: err, Context: "starting playback"}

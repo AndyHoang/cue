@@ -66,7 +66,6 @@ func (s *Scrobbler) Monitor(ctx context.Context, cmd *exec.Cmd, ipcSocket string
 			activeItem = items[0]
 		}
 
-
 		// Try to connect to MPV IPC if available
 		if ipcSocket != "" {
 			mpv, err = dialMPV(ipcSocket)
@@ -76,7 +75,6 @@ func (s *Scrobbler) Monitor(ctx context.Context, cmd *exec.Cmd, ipcSocket string
 				defer func() { _ = mpv.Close() }()
 			}
 		}
-
 
 		// Polling loop
 		ticker := time.NewTicker(s.interval)
@@ -193,7 +191,6 @@ func (s *Scrobbler) Monitor(ctx context.Context, cmd *exec.Cmd, ipcSocket string
 		}
 	}()
 
-
 	return PlaybackHandle{
 		ResultCh: resCh,
 		StatusCh: statusCh,
@@ -216,4 +213,3 @@ func (s *Scrobbler) markPreviousWatched(items []domain.MediaItem, currentIdx int
 		}(item)
 	}
 }
-

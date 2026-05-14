@@ -1,7 +1,6 @@
 # Cue
 
-![Cue TV Show View](assets/screenshot1.png)
-![Cue Movie View](assets/screenshot2.png)
+![Cue Media Player](assets/screenshot1.png)
 
 > A fast terminal client for browsing and playing media from Plex and Jellyfin servers
 

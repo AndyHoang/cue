@@ -259,7 +259,7 @@ func renderMediaHeader(item domain.MediaItem, width int) string {
 	}
 	switch item.WatchStatus() {
 	case domain.WatchStatusWatched:
-		b.WriteString(styles.PlayedStyle.Render("✓ Watched"))
+		b.WriteString(styles.PlayedStyle.Render(styles.PlayedChar + " Watched"))
 	case domain.WatchStatusInProgress:
 		var pct float64
 		if item.Duration > 0 {
@@ -268,9 +268,9 @@ func renderMediaHeader(item domain.MediaItem, width int) string {
 		bar := styles.RenderProgressBar(pct, barWidth)
 		b.WriteString(bar)
 		b.WriteString("\n")
-		b.WriteString(styles.InProgressStyle.Render(fmt.Sprintf("◐ %.0f%% watched (%s remaining)", pct, formatRemainingDuration(item))))
+		b.WriteString(styles.InProgressStyle.Render(fmt.Sprintf("%s %.0f%% watched (%s remaining)", styles.InProgressChar, pct, formatRemainingDuration(item))))
 	case domain.WatchStatusUnwatched:
-		b.WriteString(styles.DimStyle.Render("○ Unwatched"))
+		b.WriteString(styles.DimStyle.Render(styles.UnplayedChar + " Unwatched"))
 	}
 
 	return strings.TrimRight(b.String(), "\n")

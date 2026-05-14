@@ -58,7 +58,7 @@ var (
 
 // Raw watch status characters (unstyled)
 const (
-	UnplayedChar   = "●"
+	UnplayedChar   = "○"
 	InProgressChar = "◐"
 	PlayedChar     = "✓"
 )

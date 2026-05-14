@@ -212,7 +212,6 @@ func (m Model) handleDrillIn() (tea.Model, tea.Cmd) {
 			return m.playOrConfirmResume(item, playlist, startIdx)
 		}
 
-
 		return m, nil
 	}
 	return m.drillIntoSelection()
@@ -242,7 +241,6 @@ func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 			return m.playOrConfirmResume(item, playlist, startIdx)
 		}
 
-
 		return m, nil
 	}
 
@@ -253,7 +251,6 @@ func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 		playlist, startIdx := top.GetSeasonPlaylist()
 		return m.playOrConfirmResume(item, playlist, startIdx)
 	}
-
 
 	return m, nil
 }
@@ -434,7 +431,6 @@ func (m Model) handlePlay() (tea.Model, tea.Cmd) {
 	return m, PlayItemCmd(m.PlaybackSvc, *item, false, startIdx, playlist...)
 }
 
-
 func (m Model) playOrConfirmResume(item *domain.MediaItem, playlist []domain.MediaItem, startIdx int) (tea.Model, tea.Cmd) {
 	if item == nil {
 		return m, nil
@@ -446,7 +442,6 @@ func (m Model) playOrConfirmResume(item *domain.MediaItem, playlist []domain.Med
 	}
 	return m, PlayItemCmd(m.PlaybackSvc, *item, false, startIdx, playlist...)
 }
-
 
 // handleToggleInspector toggles the inspector panel visibility
 func (m Model) handleToggleInspector() (tea.Model, tea.Cmd) {
@@ -542,7 +537,6 @@ func (m Model) handleNextEpisode() (tea.Model, tea.Cmd) {
 			playlist, startIdx := top.GetSeasonPlaylist()
 			return m.playOrConfirmResume(item, playlist, startIdx)
 		}
-
 
 	}
 

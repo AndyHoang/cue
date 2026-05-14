@@ -106,7 +106,6 @@ func (c *mpvConn) GetPath() (string, error) {
 	return s, nil
 }
 
-
 func (c *mpvConn) Close() error {
 	return c.conn.Close()
 }
