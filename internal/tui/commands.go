@@ -119,6 +119,25 @@ func LoadContinueWatchingCmd(svc *library.Service) tea.Cmd {
 	}
 }
 
+// LoadSeasonForPlaybackCmd loads all episodes for an episode's season to build a full playlist
+func LoadSeasonForPlaybackCmd(svc *library.Service, item *domain.MediaItem) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		// We need ShowID and ParentID (SeasonID)
+		if item.ShowID == "" || item.ParentID == "" {
+			return ErrMsg{Err: fmt.Errorf("missing show or season ID for binge-watching"), Context: "loading season"}
+		}
+
+		episodes, err := svc.FetchEpisodes(ctx, item.LibraryID, item.ShowID, item.ParentID)
+		if err != nil {
+			return ErrMsg{Err: err, Context: "loading season for playback"}
+		}
+		return SeasonForPlaybackLoadedMsg{Item: item, Episodes: episodes}
+	}
+}
+
 // PlayItemCmd starts playback of an item, optionally with a playlist and start index
 func PlayItemCmd(svc *player.Service, item domain.MediaItem, resume bool, playlistStart int, playlist ...domain.MediaItem) tea.Cmd {
 

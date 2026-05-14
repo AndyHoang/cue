@@ -601,6 +601,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.updateInspector()
 		return m, nil
 
+	case SeasonForPlaybackLoadedMsg:
+		m.Loading = false
+		startIdx := 0
+		playlist := make([]domain.MediaItem, len(msg.Episodes))
+		for i, ep := range msg.Episodes {
+			playlist[i] = *ep
+			if ep.ID == msg.Item.ID {
+				startIdx = i
+			}
+		}
+		return m.playOrConfirmResume(msg.Item, playlist, startIdx)
+
 	case PlaylistModalDataMsg:
 		m.PlaylistModal.Show(msg.Playlists, msg.Membership, msg.Item)
 		m.PlaylistModal.SetSize(m.Width, m.Height)

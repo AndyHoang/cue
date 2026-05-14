@@ -63,6 +63,12 @@ type ContinueWatchingLoadedMsg struct {
 	Items []*domain.MediaItem
 }
 
+// SeasonForPlaybackLoadedMsg signals that a full season has been loaded for playback
+type SeasonForPlaybackLoadedMsg struct {
+	Item     *domain.MediaItem
+	Episodes []*domain.MediaItem
+}
+
 // PlaybackStartedMsg signals that playback has started (player launched)
 type PlaybackStartedMsg struct {
 	Item   domain.MediaItem

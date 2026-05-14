@@ -205,8 +205,7 @@ func (m Model) handleDrillIn() (tea.Model, tea.Cmd) {
 
 	if !top.CanDrillInto() {
 		if item := top.SelectedMediaItem(); item != nil {
-			playlist, startIdx := top.GetSeasonPlaylist()
-			return m.playOrConfirmResume(item, playlist, startIdx)
+			return m.playItemWithContext(top, item, true)
 		}
 
 		return m, nil
@@ -234,8 +233,7 @@ func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 		}
 		// Cursor is on an episode — play it
 		if item := top.SelectedMediaItem(); item != nil {
-			playlist, startIdx := top.GetSeasonPlaylist()
-			return m.playOrConfirmResume(item, playlist, startIdx)
+			return m.playItemWithContext(top, item, true)
 		}
 
 		return m, nil
@@ -245,8 +243,7 @@ func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 		return m.drillIntoSelection()
 	}
 	if item := top.SelectedMediaItem(); item != nil {
-		playlist, startIdx := top.GetSeasonPlaylist()
-		return m.playOrConfirmResume(item, playlist, startIdx)
+		return m.playItemWithContext(top, item, true)
 	}
 
 	return m, nil
@@ -424,8 +421,22 @@ func (m Model) handlePlay() (tea.Model, tea.Cmd) {
 	if item == nil {
 		return m, nil
 	}
+	return m.playItemWithContext(top, item, false)
+}
+
+// playItemWithContext handles playback of an item with appropriate playlist context.
+// If playing an episode from a non-sequential view (like Continue Watching), it fetches the full season.
+func (m Model) playItemWithContext(top *components.ListColumn, item *domain.MediaItem, resume bool) (tea.Model, tea.Cmd) {
+	if item.Type == domain.MediaTypeEpisode && (top.ColumnType() == components.ColumnTypeMixed || top.ContentID() == continueLibraryID) {
+		m.Loading = true
+		return m, LoadSeasonForPlaybackCmd(m.LibraryService, item)
+	}
+
 	playlist, startIdx := top.GetSeasonPlaylist()
-	return m, PlayItemCmd(m.PlaybackSvc, *item, false, startIdx, playlist...)
+	if !resume {
+		return m, PlayItemCmd(m.PlaybackSvc, *item, false, startIdx, playlist...)
+	}
+	return m.playOrConfirmResume(item, playlist, startIdx)
 }
 
 func (m Model) playOrConfirmResume(item *domain.MediaItem, playlist []domain.MediaItem, startIdx int) (tea.Model, tea.Cmd) {
