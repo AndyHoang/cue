@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"time"
 
 	"github.com/SuperCoolPencil/cue/internal/config"
 	"github.com/SuperCoolPencil/cue/internal/domain"
@@ -43,17 +42,7 @@ func NewClient(cfg *config.Config, logger *slog.Logger) (MediaSource, error) {
 
 	switch cfg.Server.Type {
 	case config.SourceTypePlex:
-		client := plex.NewClient(cfg.Server.URL, cfg.Server.Token, logger)
-
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
-		if err := client.FetchIdentity(ctx); err != nil {
-			logger.Warn("failed to fetch plex identity", "error", err)
-			// Non-fatal: playlist creation will fail but browsing works
-		}
-
-		return client, nil
+		return plex.NewClient(cfg.Server.URL, cfg.Server.Token, logger), nil
 
 	case config.SourceTypeJellyfin:
 		if cfg.Server.UserID == "" {

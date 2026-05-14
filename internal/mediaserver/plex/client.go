@@ -79,6 +79,14 @@ func (c *Client) FetchIdentity(ctx context.Context) error {
 	return nil
 }
 
+// ensureIdentity ensures the server's machineIdentifier is available
+func (c *Client) ensureIdentity(ctx context.Context) error {
+	if c.machineIdentifier != "" {
+		return nil
+	}
+	return c.FetchIdentity(ctx)
+}
+
 // doRequest performs an authenticated HTTP request
 func (c *Client) doRequest(ctx context.Context, method, path string, query url.Values) ([]byte, error) {
 	reqURL := fmt.Sprintf("%s%s", c.baseURL, path)
@@ -477,6 +485,10 @@ func (c *Client) CreatePlaylist(ctx context.Context, title string, itemIDs []str
 		return nil, fmt.Errorf("plex does not support creating empty playlists")
 	}
 
+	if err := c.ensureIdentity(ctx); err != nil {
+		return nil, fmt.Errorf("failed to fetch server identity: %w", err)
+	}
+
 	// Build canonical URI with machineIdentifier
 	ids := strings.Join(itemIDs, ",")
 	uri := fmt.Sprintf("server://%s/com.plexapp.plugins.library/library/metadata/%s",
@@ -540,6 +552,10 @@ func (c *Client) CreatePlaylist(ctx context.Context, title string, itemIDs []str
 func (c *Client) AddToPlaylist(ctx context.Context, playlistID string, itemIDs []string) error {
 	if len(itemIDs) == 0 {
 		return nil
+	}
+
+	if err := c.ensureIdentity(ctx); err != nil {
+		return fmt.Errorf("failed to fetch server identity: %w", err)
 	}
 
 	path := fmt.Sprintf("/playlists/%s/items", playlistID)
