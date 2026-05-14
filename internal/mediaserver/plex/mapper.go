@@ -75,7 +75,7 @@ func mapMovie(m Metadata, serverURL string) domain.MediaItem {
 
 	item.ContentRating = normalizeContentRating(m.ContentRating)
 	if len(m.Media) > 0 {
-		media := m.Media[0]
+		media := findBestMedia(m.Media)
 		item.Bitrate = media.Bitrate
 		item.Width = media.Width
 		item.Height = media.Height
@@ -367,6 +367,20 @@ func mapPlaylist(m Metadata, serverURL string) domain.Playlist {
 		Duration:     time.Duration(m.Duration) * time.Millisecond,
 		UpdatedAt:    m.UpdatedAt,
 	}
+}
+
+// findBestMedia returns the media version with the highest resolution (width)
+func findBestMedia(media []Media) Media {
+	if len(media) == 0 {
+		return Media{}
+	}
+	best := media[0]
+	for i := 1; i < len(media); i++ {
+		if media[i].Width > best.Width {
+			best = media[i]
+		}
+	}
+	return best
 }
 
 // MapLibraryContent converts Plex metadata to domain.ListItem for mixed libraries.

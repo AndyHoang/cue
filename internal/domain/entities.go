@@ -95,16 +95,18 @@ func (m MediaItem) EpisodeCode() string {
 	return fmt.Sprintf("S%02dE%02d", m.SeasonNum, m.EpisodeNum)
 }
 
-// Resolution returns a human-readable resolution string based on video height
+// Resolution returns a human-readable resolution string based on video width and height
 func (m MediaItem) Resolution() string {
 	switch {
-	case m.Height >= 2160:
+	case m.Width >= 3840 || m.Height >= 2160:
 		return "4K"
-	case m.Height >= 1080:
+	case m.Width >= 2560 || m.Height >= 1440:
+		return "1440p"
+	case m.Width >= 1920 || m.Height >= 1080:
 		return "1080p"
-	case m.Height >= 720:
+	case m.Width >= 1280 || m.Height >= 720:
 		return "720p"
-	case m.Height >= 480:
+	case m.Width >= 720 || m.Height >= 480:
 		return "480p"
 	case m.Height > 0:
 		return fmt.Sprintf("%dp", m.Height)

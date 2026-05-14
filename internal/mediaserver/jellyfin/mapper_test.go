@@ -102,3 +102,35 @@ func TestMapJellyfinEpisodeSearchAndPlaylist(t *testing.T) {
 		t.Fatalf("playlists = %#v", playlists)
 	}
 }
+
+func TestJellyfinExtractMetadataBestVersion(t *testing.T) {
+	item := Item{
+		MediaSources: []MediaSource{
+			{
+				MediaStreams: []MediaStream{
+					{Type: "Video", Width: 1920, Height: 1080, BitRate: 5000000},
+				},
+			},
+			{
+				MediaStreams: []MediaStream{
+					{Type: "Video", Width: 3840, Height: 2160, BitRate: 20000000},
+				},
+			},
+			{
+				MediaStreams: []MediaStream{
+					{Type: "Video", Width: 1280, Height: 720, BitRate: 2000000},
+				},
+			},
+		},
+	}
+
+	bitrate := extractBitrate(item)
+	if bitrate != 20000 {
+		t.Errorf("extractBitrate() = %d; want 20000", bitrate)
+	}
+
+	width, height := extractResolution(item)
+	if width != 3840 || height != 2160 {
+		t.Errorf("extractResolution() = %d, %d; want 3840, 2160", width, height)
+	}
+}

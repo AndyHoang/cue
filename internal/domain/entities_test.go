@@ -43,3 +43,31 @@ func TestShowSeasonPlaylistDescriptions(t *testing.T) {
 		t.Fatalf("playlist desc=%q", playlist.GetDescription())
 	}
 }
+
+func TestMediaItemResolution(t *testing.T) {
+	tests := []struct {
+		width, height int
+		expected      string
+	}{
+		{3840, 2160, "4K"},
+		{3840, 1600, "4K"}, // Ultra-wide 4K
+		{1920, 1080, "1080p"},
+		{1920, 800, "1080p"}, // Ultra-wide 1080p
+		{2560, 1440, "1440p"},
+		{1280, 720, "720p"},
+		{1280, 534, "720p"}, // Ultra-wide 720p
+		{720, 480, "480p"},
+		{640, 480, "480p"},
+		{0, 480, "480p"},   // Only height
+		{1920, 0, "1080p"}, // Only width
+		{0, 1079, "720p"},  // Fallback to 720p class
+		{0, 0, ""},         // No metadata
+	}
+
+	for _, tt := range tests {
+		item := MediaItem{Width: tt.width, Height: tt.height}
+		if got := item.Resolution(); got != tt.expected {
+			t.Errorf("Resolution(%d, %d) = %q; want %q", tt.width, tt.height, got, tt.expected)
+		}
+	}
+}

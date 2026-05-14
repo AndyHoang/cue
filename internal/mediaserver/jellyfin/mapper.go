@@ -441,36 +441,40 @@ func normalizeContainer(container string) string {
 
 // extractBitrate extracts the video bitrate from item media streams
 func extractBitrate(item Item) int {
+	var maxBitrate int
 	for _, source := range item.MediaSources {
 		for _, stream := range source.MediaStreams {
-			if stream.Type == "Video" && stream.BitRate > 0 {
-				return stream.BitRate / 1000 // Convert to kbps
+			if stream.Type == "Video" && stream.BitRate > maxBitrate {
+				maxBitrate = stream.BitRate
 			}
 		}
 	}
 	for _, stream := range item.MediaStreams {
-		if stream.Type == "Video" && stream.BitRate > 0 {
-			return stream.BitRate / 1000
+		if stream.Type == "Video" && stream.BitRate > maxBitrate {
+			maxBitrate = stream.BitRate
 		}
 	}
-	return 0
+	return maxBitrate / 1000
 }
 
 // extractResolution extracts the video width and height from item media streams
 func extractResolution(item Item) (int, int) {
+	var maxWidth, maxHeight int
 	for _, source := range item.MediaSources {
 		for _, stream := range source.MediaStreams {
-			if stream.Type == "Video" && stream.Width > 0 {
-				return stream.Width, stream.Height
+			if stream.Type == "Video" && stream.Width > maxWidth {
+				maxWidth = stream.Width
+				maxHeight = stream.Height
 			}
 		}
 	}
 	for _, stream := range item.MediaStreams {
-		if stream.Type == "Video" && stream.Width > 0 {
-			return stream.Width, stream.Height
+		if stream.Type == "Video" && stream.Width > maxWidth {
+			maxWidth = stream.Width
+			maxHeight = stream.Height
 		}
 	}
-	return 0, 0
+	return maxWidth, maxHeight
 }
 
 // MapPlaylists converts Jellyfin items to domain playlists

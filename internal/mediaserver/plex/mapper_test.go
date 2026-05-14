@@ -95,3 +95,16 @@ func TestMapPlexEpisodeAndPlaylist(t *testing.T) {
 		t.Fatalf("playlists = %#v", playlists)
 	}
 }
+
+func TestPlexFindBestMedia(t *testing.T) {
+	mediaList := []Media{
+		{Width: 1920, Height: 1080, Bitrate: 5000},
+		{Width: 3840, Height: 2160, Bitrate: 20000},
+		{Width: 1280, Height: 720, Bitrate: 2000},
+	}
+
+	best := findBestMedia(mediaList)
+	if best.Width != 3840 {
+		t.Errorf("findBestMedia() width = %d; want 3840", best.Width)
+	}
+}
