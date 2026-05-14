@@ -367,6 +367,7 @@ func (s *Service) playItem(ctx context.Context, offset time.Duration, playlistSt
 		allPlaybackItems = playlist
 	} else {
 		allPlaybackItems = []domain.MediaItem{item}
+		playlistStart = 0
 	}
 
 	playableMedias := make([]domain.PlayableMedia, 0, len(allPlaybackItems))
@@ -395,7 +396,7 @@ func (s *Service) playItem(ctx context.Context, offset time.Duration, playlistSt
 	}
 
 	// Start monitoring progress for all items in the playlist
-	return s.scrobbler.Monitor(ctx, cmd, ipcSocket, allPlaybackItems...), nil
+	return s.scrobbler.Monitor(ctx, cmd, ipcSocket, playlistStart, allPlaybackItems...), nil
 }
 
 // MarkWatched marks an item as fully watched

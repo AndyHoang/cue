@@ -145,8 +145,10 @@ type Model struct {
 	AppConfig *config.Config
 	Version   string
 
-	pendingPlayback    *domain.MediaItem
-	PendingSelectionID string // ID of item to select after load completes
+	pendingPlayback      *domain.MediaItem
+	pendingPlaylist      []domain.MediaItem
+	pendingPlaylistStart int
+	PendingSelectionID   string // ID of item to select after load completes
 }
 
 // NewModel creates a new application model

@@ -39,28 +39,25 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, Keys.Confirm):
 			item := *m.pendingPlayback
+			playlist := m.pendingPlaylist
+			startIdx := m.pendingPlaylistStart
 			m.pendingPlayback = nil
+			m.pendingPlaylist = nil
 			m.State = StateBrowsing
-			var playlist []domain.MediaItem
-			var startIdx int
-			if top := m.ColumnStack.Top(); top != nil {
-				playlist, startIdx = top.GetSeasonPlaylist()
-			}
 			return m, PlayItemCmd(m.PlaybackSvc, item, true, startIdx, playlist...)
 
 		case key.Matches(msg, Keys.Deny):
 			item := *m.pendingPlayback
+			playlist := m.pendingPlaylist
+			startIdx := m.pendingPlaylistStart
 			m.pendingPlayback = nil
+			m.pendingPlaylist = nil
 			m.State = StateBrowsing
-			var playlist []domain.MediaItem
-			var startIdx int
-			if top := m.ColumnStack.Top(); top != nil {
-				playlist, startIdx = top.GetSeasonPlaylist()
-			}
 			return m, PlayItemCmd(m.PlaybackSvc, item, false, startIdx, playlist...)
 
 		case key.Matches(msg, Keys.Escape):
 			m.pendingPlayback = nil
+			m.pendingPlaylist = nil
 			m.State = StateBrowsing
 		}
 		return m, nil
@@ -437,6 +434,8 @@ func (m Model) playOrConfirmResume(item *domain.MediaItem, playlist []domain.Med
 	}
 	if item.ShouldResume() {
 		m.pendingPlayback = item
+		m.pendingPlaylist = playlist
+		m.pendingPlaylistStart = startIdx
 		m.State = StateConfirmResume
 		return m, nil
 	}

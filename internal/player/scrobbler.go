@@ -48,7 +48,7 @@ func NewScrobbler(client domain.PlaybackClient, logger *slog.Logger) *Scrobbler 
 
 // Monitor starts a background goroutine to track playback progress for one or more items.
 // If multiple items are provided, it uses mpv IPC to detect which one is active.
-func (s *Scrobbler) Monitor(ctx context.Context, cmd *exec.Cmd, ipcSocket string, items ...domain.MediaItem) PlaybackHandle {
+func (s *Scrobbler) Monitor(ctx context.Context, cmd *exec.Cmd, ipcSocket string, playlistStart int, items ...domain.MediaItem) PlaybackHandle {
 
 	resCh := make(chan ScrobbleResult, 1)
 	statusCh := make(chan string, 10)
@@ -62,8 +62,14 @@ func (s *Scrobbler) Monitor(ctx context.Context, cmd *exec.Cmd, ipcSocket string
 		var err error
 		var activeItem domain.MediaItem
 		var lastPosMs int64
+		markedIDs := make(map[string]bool)
+
 		if len(items) > 0 {
-			activeItem = items[0]
+			startIdx := playlistStart
+			if startIdx < 0 || startIdx >= len(items) {
+				startIdx = 0
+			}
+			activeItem = items[startIdx]
 		}
 
 		// Try to connect to MPV IPC if available
@@ -113,7 +119,7 @@ func (s *Scrobbler) Monitor(ctx context.Context, cmd *exec.Cmd, ipcSocket string
 									if newItem.ID != activeItem.ID {
 										s.logger.Info("playlist item changed", "from", activeItem.Title, "to", newItem.Title)
 										// Mark all previous items in the playlist as watched
-										s.markPreviousWatched(items, newIdx)
+										s.markPreviousWatched(items, newIdx, markedIDs)
 										activeItem = newItem
 									}
 								}
@@ -169,10 +175,11 @@ func (s *Scrobbler) Monitor(ctx context.Context, cmd *exec.Cmd, ipcSocket string
 				defer cancel()
 				if err := s.client.MarkPlayed(markCtx, activeItem.ID); err == nil {
 					autoMarked = true
+					markedIDs[activeItem.ID] = true
 					// Find current index and mark all previous
 					for i, it := range items {
 						if it.ID == activeItem.ID {
-							s.markPreviousWatched(items, i)
+							s.markPreviousWatched(items, i, markedIDs)
 							break
 						}
 					}
@@ -197,12 +204,13 @@ func (s *Scrobbler) Monitor(ctx context.Context, cmd *exec.Cmd, ipcSocket string
 	}
 }
 
-func (s *Scrobbler) markPreviousWatched(items []domain.MediaItem, currentIdx int) {
+func (s *Scrobbler) markPreviousWatched(items []domain.MediaItem, currentIdx int, markedIDs map[string]bool) {
 	for i := 0; i < currentIdx; i++ {
 		item := items[i]
-		if item.IsPlayed {
+		if item.IsPlayed || markedIDs[item.ID] {
 			continue
 		}
+		markedIDs[item.ID] = true
 		s.logger.Info("bulk-marking previous item watched", "item", item.Title)
 		go func(it domain.MediaItem) {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
