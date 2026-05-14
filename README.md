@@ -9,7 +9,10 @@
 
 -  **Lightning Fast Browsing**: Instant, keyboard-driven navigation across massive media libraries.
 -  **Unified TV Show View**: Explore seasons and episodes in a single, collapsible tree view.
--  **Smart Scrobbling**: Real-time playback progress and watch status sync with Plex & Jellyfin.
+-  **Native Binge-Watching**: Seamless, gapless playback for TV shows using native mpv playlists.
+-  **Bulk Scrobbling**: Automatically marks previous episodes as watched when skipping ahead or finishing a season.
+-  **Smart Filtering**: Hide watched movies, shows, and seasons with a single setting for a cleaner library view.
+-  **Smart Scrobbling**: Real-time playback progress and watch status sync with Plex & Jellyfin via mpv IPC.
 -  **Deep Metadata**: View rich details, media info, and progress bars in a dedicated inspector.
 -  **Global Fuzzy Search**: Instantly find any movie or show with just a few keystrokes.
 -  **Vim-Style Navigation**: Efficient, keyboard-first interface using familiar `h/j/k/l` bindings.
@@ -60,6 +63,8 @@ You'll be prompted to enter your server URL. Cue automatically detects whether i
 | `r` / `R` | Refresh library / all |
 | `g` / `G` | Jump to top / bottom |
 | `Ctrl+u` / `d` | Page up / half-page down |
+| `Autoplay` | Toggle automatic next episode in Config menu |
+| `Hide watched` | Toggle visibility of watched items in Config menu |
 | `L` | Logout |
 | `?` | Show help |
 | `q` | Quit/Back |
@@ -68,14 +73,17 @@ You'll be prompted to enter your server URL. Cue automatically detects whether i
 
 Config file: `~/.config/cue/config.yaml` (created on first run).
 
-### Playback Scrobbling
-Cue uses **mpv's JSON-RPC IPC** to track real-time progress. For the best experience, ensure `mpv` is installed. When using `mpv`, Cue will:
-- Save your position every 10 seconds.
-- Show "Now Playing: [Title]" in the persistent footer.
-- Show "Saved MM:SS to server" in the status bar.
-- Automatically mark the item as watched on your server once you reach 90% of the duration.
+### Binge Watching & Native Playlists
+Cue handles TV show playback by sending the entire season to mpv as a native playlist. This provides several benefits:
+- **Gapless Transitions**: mpv handles the transition between episodes internally, ensuring zero delay.
+- **Smart Start**: Playback always starts at your selected episode (or saved position) while keeping the rest of the season accessible in the player's playlist.
+- **Bulk Progress Sync**: 
+    - When you transition to a new episode, Cue automatically marks all *preceding* episodes in the playlist as watched on your server.
+    - Reaching the 90% threshold on an episode automatically marks it and all previous unwatched episodes as played.
+- **IPC Integration**: Real-time progress monitoring continues across the entire playlist session.
 
-Other players (VLC, IINA, etc.) are supported for playback, but may only support "mark watched" on process exit.
+Other players (VLC, IINA, etc.) are supported for basic playback, but the native playlist and real-time scrobbling features require `mpv`.
+
 
 ## Attribution
 

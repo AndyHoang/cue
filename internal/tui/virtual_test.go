@@ -34,15 +34,26 @@ func TestDrillVirtualContinueWatching(t *testing.T) {
 	model.ColumnStack.Reset(root)
 
 	result := model.drillVirtualLibrary(domain.Library{ID: continueLibraryID, Name: "Continue Watching", Type: "cue"}, 0)
-	if result == nil || model.ColumnStack.Len() != 2 {
+	if result == nil || model.ColumnStack.Len() != 2 || result.Cmd == nil {
 		t.Fatalf("virtual drill failed: %#v len=%d", result, model.ColumnStack.Len())
 	}
 	top := model.ColumnStack.Top()
 	if top.ContentID() != continueLibraryID {
 		t.Fatalf("content id = %q", top.ContentID())
 	}
-	if item := top.SelectedMediaItem(); item == nil || item.ID != "m1" {
-		t.Fatalf("selected item = %#v", item)
+
+	// Verify that the column is in a loading state
+	if !model.Loading {
+		t.Fatal("expected model to be in loading state")
+	}
+
+	// Simulate the command completion
+	msg := ContinueWatchingLoadedMsg{Items: []*domain.MediaItem{{ID: "m1", Title: "Movie"}}}
+	m, _ := model.Update(msg)
+	model = m.(Model)
+
+	if top := model.ColumnStack.Top(); top.ItemCount() != 1 {
+		t.Fatalf("item count = %d", top.ItemCount())
 	}
 }
 

@@ -65,32 +65,41 @@ func NewLauncher(command string, args []string, seekFlag string, logger *slog.Lo
 	}
 }
 
-// Launch opens a media URL in the configured player or auto-detected player.
-// Any external subtitle tracks in `media` are side-loaded into mpv-family players.
-func (l *Launcher) Launch(media domain.PlayableMedia, startOffset time.Duration) (*exec.Cmd, string, error) {
-	offsetSecs := int(startOffset.Seconds())
+// Launch opens one or more media URLs in the configured player or auto-detected player.
+func (l *Launcher) Launch(offset time.Duration, playlistStart int, media ...domain.PlayableMedia) (*exec.Cmd, string, error) {
+	offsetSecs := int(offset.Seconds())
+
+
 
 	// Tier 1: User configured a specific player
 	if l.command != "" {
 		l.logger.Info("using configured player", "command", l.command)
-		return l.launchConfigured(media, offsetSecs)
+		return l.launchConfigured(offsetSecs, playlistStart, media...)
 	}
+
+
 
 	// Tier 2: Auto-detect known players
 	if player, found := l.detectPlayer(); found {
 		l.logger.Info("auto-detected player", "binary", player.Binary)
-		return l.execPlayer(player, media, offsetSecs)
+		return l.execPlayer(player, offsetSecs, playlistStart, media...)
 	}
+
+
 
 	// Tier 3: System default fallback (xdg-open/open)
 	l.logger.Warn("no video players found, falling back to system default")
 	if offsetSecs > 0 {
 		l.logger.Warn("resume not supported with system default player - starting from beginning")
 	}
-	if len(media.Subtitles) > 0 {
+	if len(media) > 0 && len(media[0].Subtitles) > 0 {
 		l.logger.Warn("external subtitles not supported with system default player - some tracks may be missing")
 	}
-	cmd, err := l.launchDefault(media.URL)
+	if len(media) == 0 {
+		return nil, "", fmt.Errorf("no media provided")
+	}
+	cmd, err := l.launchDefault(media[0].URL)
+
 	return cmd, "", err
 }
 
@@ -161,16 +170,22 @@ func (l *Launcher) detectPlayer() (PlayerDef, bool) {
 	return PlayerDef{}, false
 }
 
-// execPlayer launches the detected player with optional seek offset
-func (l *Launcher) execPlayer(player PlayerDef, media domain.PlayableMedia, offsetSecs int) (*exec.Cmd, string, error) {
+// execPlayer launches the detected player with optional seek offset and playlist start
+func (l *Launcher) execPlayer(player PlayerDef, offsetSecs int, playlistStart int, media ...domain.PlayableMedia) (*exec.Cmd, string, error) {
+
 	args := []string{}
 	var ipcSocket string
+
 
 	// Enable IPC for mpv
 	if player.Binary == "mpv" {
 		ipcSocket = newMPVSocketPath()
 		args = append(args, "--input-ipc-server="+ipcSocket)
+		if playlistStart > 0 {
+			args = append(args, fmt.Sprintf("--playlist-start=%d", playlistStart))
+		}
 	}
+
 
 	// Add seek flag if we have an offset and the player supports it
 	if offsetSecs > 0 && player.SeekFlag != "" {
@@ -179,14 +194,19 @@ func (l *Launcher) execPlayer(player PlayerDef, media domain.PlayableMedia, offs
 		args = append(args, strings.Fields(formattedFlag)...)
 	}
 
-	if subArgs := subFileArgs(player.Binary, media.Subtitles); len(subArgs) > 0 {
-		args = append(args, subArgs...)
-	} else if len(media.Subtitles) > 0 {
-		l.logger.Warn("external subtitles not supported by player - skipping",
-			"binary", player.Binary, "count", len(media.Subtitles))
+	if len(media) > 0 {
+		if subArgs := subFileArgs(player.Binary, media[0].Subtitles); len(subArgs) > 0 {
+			args = append(args, subArgs...)
+		} else if len(media[0].Subtitles) > 0 {
+			l.logger.Warn("external subtitles not supported by player - skipping",
+				"binary", player.Binary, "count", len(media[0].Subtitles))
+		}
 	}
 
-	args = append(args, media.URL)
+	for _, m := range media {
+		args = append(args, m.URL)
+	}
+
 
 	l.logger.Debug("executing player", "binary", player.Binary, "args", args)
 	cmd := exec.Command(player.Binary, args...)
@@ -197,7 +217,9 @@ func (l *Launcher) execPlayer(player PlayerDef, media domain.PlayableMedia, offs
 }
 
 // launchConfigured launches the media using the user-configured player
-func (l *Launcher) launchConfigured(media domain.PlayableMedia, offsetSecs int) (*exec.Cmd, string, error) {
+func (l *Launcher) launchConfigured(offsetSecs int, playlistStart int, media ...domain.PlayableMedia) (*exec.Cmd, string, error) {
+
+
 	args := append([]string{}, l.args...)
 
 	// Add seek offset: user-configured flag takes precedence, then table lookup
@@ -217,14 +239,19 @@ func (l *Launcher) launchConfigured(media domain.PlayableMedia, offsetSecs int) 
 		}
 	}
 
-	if subArgs := subFileArgs(l.command, media.Subtitles); len(subArgs) > 0 {
-		args = append(args, subArgs...)
-	} else if len(media.Subtitles) > 0 {
-		l.logger.Warn("external subtitles not supported by configured player - skipping",
-			"command", l.command, "count", len(media.Subtitles))
+	if len(media) > 0 {
+		if subArgs := subFileArgs(l.command, media[0].Subtitles); len(subArgs) > 0 {
+			args = append(args, subArgs...)
+		} else if len(media[0].Subtitles) > 0 {
+			l.logger.Warn("external subtitles not supported by configured player - skipping",
+				"command", l.command, "count", len(media[0].Subtitles))
+		}
 	}
 
-	args = append(args, media.URL)
+	for _, m := range media {
+		args = append(args, m.URL)
+	}
+
 
 	l.logger.Debug("launching configured player", "command", l.command, "args", args)
 
@@ -335,34 +362,59 @@ func NewService(launcher *Launcher, playback domain.PlaybackClient, logger *slog
 }
 
 // Play starts playback of a media item from the beginning
-func (s *Service) Play(ctx context.Context, item domain.MediaItem) (PlaybackHandle, error) {
-	return s.playItem(ctx, item, 0)
+func (s *Service) Play(ctx context.Context, item domain.MediaItem, playlistStart int, playlist ...domain.MediaItem) (PlaybackHandle, error) {
+	return s.playItem(ctx, 0, playlistStart, item, playlist...)
 }
+
+
 
 // Resume starts playback from the saved position
-func (s *Service) Resume(ctx context.Context, item domain.MediaItem) (PlaybackHandle, error) {
-	return s.playItem(ctx, item, item.ViewOffset)
+func (s *Service) Resume(ctx context.Context, item domain.MediaItem, playlistStart int, playlist ...domain.MediaItem) (PlaybackHandle, error) {
+	return s.playItem(ctx, item.ViewOffset, playlistStart, item, playlist...)
 }
 
-// playItem resolves URL and launches player
-func (s *Service) playItem(ctx context.Context, item domain.MediaItem, offset time.Duration) (PlaybackHandle, error) {
-	media, err := s.playback.ResolvePlayable(ctx, item.ID)
-	if err != nil {
-		s.logger.Error("failed to resolve playable URL", "error", err, "itemID", item.ID)
-		return PlaybackHandle{}, err
+
+
+// playItem resolves URLs and launches player
+func (s *Service) playItem(ctx context.Context, offset time.Duration, playlistStart int, item domain.MediaItem, playlist ...domain.MediaItem) (PlaybackHandle, error) {
+	var allPlaybackItems []domain.MediaItem
+	if len(playlist) > 0 {
+		allPlaybackItems = playlist
+	} else {
+		allPlaybackItems = []domain.MediaItem{item}
+	}
+
+	playableMedias := make([]domain.PlayableMedia, 0, len(allPlaybackItems))
+
+
+	for _, pItem := range allPlaybackItems {
+		media, err := s.playback.ResolvePlayable(ctx, pItem.ID)
+		if err != nil {
+			// If resolving the first item fails, we abort. 
+			// If subsequent items fail, we might want to continue, but for now let's be strict.
+			s.logger.Error("failed to resolve playable URL", "error", err, "itemID", pItem.ID)
+			if pItem.ID == item.ID {
+				return PlaybackHandle{}, err
+			}
+			continue
+		}
+		playableMedias = append(playableMedias, media)
 	}
 
 	s.logger.Info("launching playback",
-		"title", item.Title, "itemID", item.ID, "offset", offset, "subtitles", len(media.Subtitles))
+		"title", item.Title, "itemID", item.ID, "offset", offset, "playlistSize", len(playableMedias), "startIdx", playlistStart)
 
-	cmd, ipcSocket, err := s.launcher.Launch(media, offset)
+	cmd, ipcSocket, err := s.launcher.Launch(offset, playlistStart, playableMedias...)
+
 	if err != nil {
 		return PlaybackHandle{}, err
 	}
 
-	// Start monitoring progress
-	return s.scrobbler.Monitor(ctx, cmd, ipcSocket, item), nil
+
+	// Start monitoring progress for all items in the playlist
+	return s.scrobbler.Monitor(ctx, cmd, ipcSocket, allPlaybackItems...), nil
 }
+
 
 // MarkWatched marks an item as fully watched
 func (s *Service) MarkWatched(ctx context.Context, itemID string) error {

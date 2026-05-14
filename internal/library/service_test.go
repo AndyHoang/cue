@@ -10,15 +10,16 @@ import (
 )
 
 type fakeLibraryClient struct {
-	libs         []domain.Library
-	moviePages   [][]*domain.MediaItem
-	showPages    [][]*domain.Show
-	mixedPages   [][]domain.ListItem
-	seasons      []*domain.Season
-	episodes     []*domain.MediaItem
+	libs          []domain.Library
+	moviePages    [][]*domain.MediaItem
+	showPages     [][]*domain.Show
+	mixedPages    [][]domain.ListItem
+	seasons       []*domain.Season
+	episodes      []*domain.MediaItem
+	episodesMap   map[string][]*domain.MediaItem // seasonID -> episodes
 	continueItems []*domain.MediaItem
-	libraryCalls int
-	movieCalls   int
+	libraryCalls  int
+	movieCalls    int
 }
 
 func (f *fakeLibraryClient) GetLibraries(context.Context) ([]domain.Library, error) {
@@ -47,7 +48,12 @@ func (f *fakeLibraryClient) GetSeasons(context.Context, string) ([]*domain.Seaso
 	return f.seasons, nil
 }
 
-func (f *fakeLibraryClient) GetEpisodes(context.Context, string) ([]*domain.MediaItem, error) {
+func (f *fakeLibraryClient) GetEpisodes(_ context.Context, seasonID string) ([]*domain.MediaItem, error) {
+	if f.episodesMap != nil {
+		if eps, ok := f.episodesMap[seasonID]; ok {
+			return eps, nil
+		}
+	}
 	return f.episodes, nil
 }
 

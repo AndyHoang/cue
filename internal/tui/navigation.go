@@ -436,6 +436,21 @@ func (m *Model) drillVirtualLibrary(v domain.Library, cursor int) *drillResult {
 		}
 		m.StatusMsg = "Saved hide watched setting"
 		return &drillResult{AwaitKind: AwaitNone}
+	case "__config_autoplay__":
+		m.UIConfig.Autoplay = !m.UIConfig.Autoplay
+		if m.AppConfig != nil {
+			m.AppConfig.UI.Autoplay = m.UIConfig.Autoplay
+			if err := config.SaveConfig(m.AppConfig); err != nil {
+				m.StatusMsg = fmt.Sprintf("Failed to save config: %v", err)
+				m.StatusIsErr = true
+				return &drillResult{AwaitKind: AwaitNone}
+			}
+		}
+		if top := m.ColumnStack.Top(); top != nil {
+			top.SetItems(m.configEntries())
+		}
+		m.StatusMsg = "Saved autoplay setting"
+		return &drillResult{AwaitKind: AwaitNone}
 	case "__cache_clear__":
 		m.LibraryService.InvalidateAll()
 		m.PlaylistService.ClearQueue()

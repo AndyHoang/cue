@@ -41,12 +41,24 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			item := *m.pendingPlayback
 			m.pendingPlayback = nil
 			m.State = StateBrowsing
-			return m, PlayItemCmd(m.PlaybackSvc, item, true)
+			var playlist []domain.MediaItem
+			var startIdx int
+			if top := m.ColumnStack.Top(); top != nil {
+				playlist, startIdx = top.GetSeasonPlaylist()
+			}
+			return m, PlayItemCmd(m.PlaybackSvc, item, true, startIdx, playlist...)
+
 		case key.Matches(msg, Keys.Deny):
 			item := *m.pendingPlayback
 			m.pendingPlayback = nil
 			m.State = StateBrowsing
-			return m, PlayItemCmd(m.PlaybackSvc, item, false)
+			var playlist []domain.MediaItem
+			var startIdx int
+			if top := m.ColumnStack.Top(); top != nil {
+				playlist, startIdx = top.GetSeasonPlaylist()
+			}
+			return m, PlayItemCmd(m.PlaybackSvc, item, false, startIdx, playlist...)
+
 		case key.Matches(msg, Keys.Escape):
 			m.pendingPlayback = nil
 			m.State = StateBrowsing
@@ -196,8 +208,11 @@ func (m Model) handleDrillIn() (tea.Model, tea.Cmd) {
 
 	if !top.CanDrillInto() {
 		if item := top.SelectedMediaItem(); item != nil {
-			return m.playOrConfirmResume(item)
+			playlist, startIdx := top.GetSeasonPlaylist()
+			return m.playOrConfirmResume(item, playlist, startIdx)
 		}
+
+
 		return m, nil
 	}
 	return m.drillIntoSelection()
@@ -223,8 +238,11 @@ func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 		}
 		// Cursor is on an episode — play it
 		if item := top.SelectedMediaItem(); item != nil {
-			return m.playOrConfirmResume(item)
+			playlist, startIdx := top.GetSeasonPlaylist()
+			return m.playOrConfirmResume(item, playlist, startIdx)
 		}
+
+
 		return m, nil
 	}
 
@@ -232,8 +250,11 @@ func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 		return m.drillIntoSelection()
 	}
 	if item := top.SelectedMediaItem(); item != nil {
-		return m.playOrConfirmResume(item)
+		playlist, startIdx := top.GetSeasonPlaylist()
+		return m.playOrConfirmResume(item, playlist, startIdx)
 	}
+
+
 	return m, nil
 }
 
@@ -409,10 +430,12 @@ func (m Model) handlePlay() (tea.Model, tea.Cmd) {
 	if item == nil {
 		return m, nil
 	}
-	return m, PlayItemCmd(m.PlaybackSvc, *item, false)
+	playlist, startIdx := top.GetSeasonPlaylist()
+	return m, PlayItemCmd(m.PlaybackSvc, *item, false, startIdx, playlist...)
 }
 
-func (m Model) playOrConfirmResume(item *domain.MediaItem) (tea.Model, tea.Cmd) {
+
+func (m Model) playOrConfirmResume(item *domain.MediaItem, playlist []domain.MediaItem, startIdx int) (tea.Model, tea.Cmd) {
 	if item == nil {
 		return m, nil
 	}
@@ -421,8 +444,9 @@ func (m Model) playOrConfirmResume(item *domain.MediaItem) (tea.Model, tea.Cmd) 
 		m.State = StateConfirmResume
 		return m, nil
 	}
-	return m, PlayItemCmd(m.PlaybackSvc, *item, false)
+	return m, PlayItemCmd(m.PlaybackSvc, *item, false, startIdx, playlist...)
 }
+
 
 // handleToggleInspector toggles the inspector panel visibility
 func (m Model) handleToggleInspector() (tea.Model, tea.Cmd) {
@@ -515,9 +539,13 @@ func (m Model) handleNextEpisode() (tea.Model, tea.Cmd) {
 	for i := top.SelectedIndex(); i < count; i++ {
 		top.SetSelectedIndex(i)
 		if item := top.SelectedMediaItem(); item != nil && !item.IsPlayed {
-			return m.playOrConfirmResume(item)
+			playlist, startIdx := top.GetSeasonPlaylist()
+			return m.playOrConfirmResume(item, playlist, startIdx)
 		}
+
+
 	}
+
 	m.StatusMsg = "No unwatched episode in this season"
 	return m, ClearStatusCmd(3 * time.Second)
 }

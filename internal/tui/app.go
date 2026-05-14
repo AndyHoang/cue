@@ -435,10 +435,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.StatusMsg = "Finished: " + msg.Title
 		}
+
+		// Only clear status if we're NOT playing another title
+		if m.isPlayingTitle == "" {
+			cmds = append(cmds, ClearStatusCmd(3*time.Second))
+		}
+
+
 		// Refresh view to update watch status indicators
 		cmds = append(cmds, m.refreshCurrentView())
-		cmds = append(cmds, ClearStatusCmd(3*time.Second))
 		return m, tea.Batch(cmds...)
+
 
 	case MarkWatchedMsg:
 		m.StatusMsg = "Marked watched: " + msg.Title

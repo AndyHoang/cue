@@ -630,6 +630,35 @@ func (c *ListColumn) rebuildSeasonItems() {
 	}
 }
 
+// GetSeasonPlaylist returns all MediaItems in the current season view and the index of the selected item.
+func (c *ListColumn) GetSeasonPlaylist() (playlist []domain.MediaItem, selectedIdx int) {
+	count := c.ItemCount()
+	if count == 0 {
+		return nil, 0
+	}
+
+	selectedIdx = -1
+	for i := 0; i < count; i++ {
+		idx := c.mapIndex(i)
+		if idx >= len(c.items) {
+			continue
+		}
+		if ep, ok := c.items[idx].(*domain.MediaItem); ok && ep.Type == domain.MediaTypeEpisode {
+			if i == c.cursor {
+				selectedIdx = len(playlist)
+			}
+			playlist = append(playlist, *ep)
+		}
+	}
+
+	if selectedIdx == -1 {
+		selectedIdx = 0
+	}
+	return playlist, selectedIdx
+}
+
+
+
 // IsFiltering returns true if filter mode is active
 func (c *ListColumn) IsFiltering() bool {
 	return c.filterActive

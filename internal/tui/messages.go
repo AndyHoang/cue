@@ -77,6 +77,7 @@ type PlaybackStatusMsg struct {
 
 // PlaybackFinishedMsg signals that playback has ended
 type PlaybackFinishedMsg struct {
+	Item       domain.MediaItem
 	Title      string
 	AutoMarked bool // true if auto-scrobbled as watched
 	Err        error

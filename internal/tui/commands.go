@@ -119,18 +119,21 @@ func LoadContinueWatchingCmd(svc *library.Service) tea.Cmd {
 	}
 }
 
-// PlayItemCmd starts playback of an item
-func PlayItemCmd(svc *player.Service, item domain.MediaItem, resume bool) tea.Cmd {
+// PlayItemCmd starts playback of an item, optionally with a playlist and start index
+func PlayItemCmd(svc *player.Service, item domain.MediaItem, resume bool, playlistStart int, playlist ...domain.MediaItem) tea.Cmd {
+
+
 	return func() tea.Msg {
 		ctx := context.Background()
 
 		var handle player.PlaybackHandle
 		var err error
 		if resume {
-			handle, err = svc.Resume(ctx, item)
+			handle, err = svc.Resume(ctx, item, playlistStart, playlist...)
 		} else {
-			handle, err = svc.Play(ctx, item)
+			handle, err = svc.Play(ctx, item, playlistStart, playlist...)
 		}
+
 
 		if err != nil {
 			return ErrMsg{Err: err, Context: "starting playback"}
@@ -147,6 +150,7 @@ func WaitForPlaybackCmd(resultCh <-chan player.ScrobbleResult) tea.Cmd {
 			return nil
 		}
 		return PlaybackFinishedMsg{
+			Item:       result.Item,
 			Title:      result.Title,
 			AutoMarked: result.AutoMarked,
 			Err:        result.Err,
