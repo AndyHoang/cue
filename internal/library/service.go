@@ -170,6 +170,16 @@ func (s *Service) FetchEpisodes(ctx context.Context, libID, showID, seasonID str
 	return episodes, nil
 }
 
+func (s *Service) FetchContinueWatching(ctx context.Context) ([]*domain.MediaItem, error) {
+	items, err := s.client.GetContinueWatching(ctx)
+	if err != nil {
+		s.logger.Error("failed to fetch continue watching", "error", err)
+		return nil, err
+	}
+	s.logger.Debug("fetched continue watching", "count", len(items))
+	return items, nil
+}
+
 func (s *Service) InvalidateLibrary(libID string) {
 	s.store.InvalidateLibrary(libID)
 	s.logger.Info("invalidated library cache", "libID", libID)

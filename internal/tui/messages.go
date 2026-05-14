@@ -58,6 +58,11 @@ type EpisodesLoadedMsg struct {
 	SeasonID string
 }
 
+// ContinueWatchingLoadedMsg signals that continue watching items have been loaded
+type ContinueWatchingLoadedMsg struct {
+	Items []*domain.MediaItem
+}
+
 // PlaybackStartedMsg signals that playback has started (player launched)
 type PlaybackStartedMsg struct {
 	Item   domain.MediaItem

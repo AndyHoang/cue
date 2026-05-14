@@ -362,7 +362,17 @@ func (m *Model) drillVirtualLibrary(v domain.Library, cursor int) *drillResult {
 
 	switch v.ID {
 	case continueLibraryID:
-		items = m.LibraryService.ContinueWatching(0)
+		col := components.NewListColumn(components.ColumnTypeMixed, title)
+		col.SetShowWatchStatus(m.UIConfig.ShowWatchStatus)
+		col.SetContentID(contentID)
+		col.SetLoading(true)
+		m.ColumnStack.Push(col, cursor)
+		m.Loading = true
+		m.updateLayout()
+		return &drillResult{
+			AwaitKind: AwaitNone,
+			Cmd:       LoadContinueWatchingCmd(m.LibraryService),
+		}
 	case recentLibraryID:
 		items = m.LibraryService.RecentlyAdded(0)
 	case queueLibraryID:
@@ -404,6 +414,27 @@ func (m *Model) drillVirtualLibrary(v domain.Library, cursor int) *drillResult {
 			top.SetItems(m.configEntries())
 		}
 		m.StatusMsg = "Saved library count setting"
+		return &drillResult{AwaitKind: AwaitNone}
+	case "__config_hide_watched__":
+		m.UIConfig.HideWatched = !m.UIConfig.HideWatched
+		if m.AppConfig != nil {
+			m.AppConfig.UI.HideWatched = m.UIConfig.HideWatched
+			if err := config.SaveConfig(m.AppConfig); err != nil {
+				m.StatusMsg = fmt.Sprintf("Failed to save config: %v", err)
+				m.StatusIsErr = true
+				return &drillResult{AwaitKind: AwaitNone}
+			}
+		}
+		// Apply to ALL columns in the stack
+		for i := 0; i < m.ColumnStack.Len(); i++ {
+			if col := m.ColumnStack.Get(i); col != nil {
+				col.SetHideWatched(m.UIConfig.HideWatched)
+			}
+		}
+		if top := m.ColumnStack.Top(); top != nil {
+			top.SetItems(m.configEntries())
+		}
+		m.StatusMsg = "Saved hide watched setting"
 		return &drillResult{AwaitKind: AwaitNone}
 	case "__cache_clear__":
 		m.LibraryService.InvalidateAll()

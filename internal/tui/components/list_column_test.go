@@ -52,3 +52,28 @@ func TestListColumnSetSelectedByIDHonorsSort(t *testing.T) {
 		t.Fatal("missing id should not select")
 	}
 }
+
+func TestListColumnHideWatched(t *testing.T) {
+	col := NewListColumn(ColumnTypeMovies, "Movies")
+	col.SetItems([]*domain.MediaItem{
+		{ID: "watched", Title: "Watched", IsPlayed: true},
+		{ID: "unwatched", Title: "Unwatched", IsPlayed: false},
+	})
+
+	if col.ItemCount() != 2 {
+		t.Fatalf("initial count = %d", col.ItemCount())
+	}
+
+	col.SetHideWatched(true)
+	if col.ItemCount() != 1 {
+		t.Fatalf("count after hide watched = %d", col.ItemCount())
+	}
+	if item := col.SelectedMediaItem(); item == nil || item.ID != "unwatched" {
+		t.Fatalf("selected after hide watched = %#v", item)
+	}
+
+	col.SetHideWatched(false)
+	if col.ItemCount() != 2 {
+		t.Fatalf("count after show watched = %d", col.ItemCount())
+	}
+}

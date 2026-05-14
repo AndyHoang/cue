@@ -10,4 +10,5 @@ type LibraryClient interface {
 	GetMixedContent(ctx context.Context, libID string, offset, limit int) ([]ListItem, int, error)
 	GetSeasons(ctx context.Context, showID string) ([]*Season, error)
 	GetEpisodes(ctx context.Context, seasonID string) ([]*MediaItem, error)
+	GetContinueWatching(ctx context.Context) ([]*MediaItem, error)
 }

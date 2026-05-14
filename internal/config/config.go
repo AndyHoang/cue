@@ -47,6 +47,7 @@ type PlayerConfig struct {
 type UIConfig struct {
 	ShowWatchStatus   bool `mapstructure:"show_watch_status"`   // Show watched/unwatched/in-progress indicators
 	ShowLibraryCounts bool `mapstructure:"show_library_counts"` // Keep library item counts visible after sync
+	HideWatched       bool `mapstructure:"hide_watched"`        // Hide items that are already watched
 }
 
 // LoggingConfig holds logging configuration
@@ -63,6 +64,7 @@ func DefaultConfig() *Config {
 		UI: UIConfig{
 			ShowWatchStatus:   true,
 			ShowLibraryCounts: false,
+			HideWatched:       false,
 		},
 		Logging: LoggingConfig{
 			File:  defaultLogPath(),
@@ -146,6 +148,7 @@ func SaveConfig(cfg *Config) error {
 	// Set UI fields
 	viper.Set("ui.show_watch_status", cfg.UI.ShowWatchStatus)
 	viper.Set("ui.show_library_counts", cfg.UI.ShowLibraryCounts)
+	viper.Set("ui.hide_watched", cfg.UI.HideWatched)
 
 	// Set logging fields
 	viper.Set("logging.file", cfg.Logging.File)

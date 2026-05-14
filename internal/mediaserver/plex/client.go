@@ -664,9 +664,24 @@ func (c *Client) DeletePlaylist(ctx context.Context, playlistID string) error {
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("failed to delete playlist: status %d", resp.StatusCode)
 	}
 
 	return nil
+}
+
+// GetContinueWatching returns items that are currently in progress or "on deck"
+func (c *Client) GetContinueWatching(ctx context.Context) ([]*domain.MediaItem, error) {
+	body, err := c.doRequest(ctx, http.MethodGet, "/library/onDeck", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	container, err := c.parseResponse(body)
+	if err != nil {
+		return nil, err
+	}
+
+	return MapOnDeck(container.Metadata, c.baseURL), nil
 }

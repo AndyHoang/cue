@@ -16,6 +16,7 @@ type fakeLibraryClient struct {
 	mixedPages   [][]domain.ListItem
 	seasons      []*domain.Season
 	episodes     []*domain.MediaItem
+	continueItems []*domain.MediaItem
 	libraryCalls int
 	movieCalls   int
 }
@@ -48,6 +49,10 @@ func (f *fakeLibraryClient) GetSeasons(context.Context, string) ([]*domain.Seaso
 
 func (f *fakeLibraryClient) GetEpisodes(context.Context, string) ([]*domain.MediaItem, error) {
 	return f.episodes, nil
+}
+
+func (f *fakeLibraryClient) GetContinueWatching(context.Context) ([]*domain.MediaItem, error) {
+	return f.continueItems, nil
 }
 
 func TestFetchLibrariesSavesToStore(t *testing.T) {
@@ -106,6 +111,21 @@ func TestFetchMoviesPaginatesAndReportsProgress(t *testing.T) {
 	}
 	if len(progress) != 3 || progress[0] != 1 || progress[2] != 3 {
 		t.Fatalf("progress=%v", progress)
+	}
+}
+
+func TestFetchContinueWatching(t *testing.T) {
+	st, _ := store.NewLibraryStore("", "")
+	expected := []*domain.MediaItem{{ID: "1", Title: "In Progress"}}
+	client := &fakeLibraryClient{continueItems: expected}
+	svc := NewService(client, st, slog.Default())
+
+	items, err := svc.FetchContinueWatching(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 1 || items[0].Title != "In Progress" {
+		t.Fatalf("unexpected items: %#v", items)
 	}
 }
 

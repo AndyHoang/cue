@@ -105,6 +105,20 @@ func LoadEpisodesCmd(svc *library.Service, libID, showID, seasonID string) tea.C
 	}
 }
 
+// LoadContinueWatchingCmd loads items currently in progress
+func LoadContinueWatchingCmd(svc *library.Service) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		items, err := svc.FetchContinueWatching(ctx)
+		if err != nil {
+			return ErrMsg{Err: err, Context: "loading continue watching"}
+		}
+		return ContinueWatchingLoadedMsg{Items: items}
+	}
+}
+
 // PlayItemCmd starts playback of an item
 func PlayItemCmd(svc *player.Service, item domain.MediaItem, resume bool) tea.Cmd {
 	return func() tea.Msg {

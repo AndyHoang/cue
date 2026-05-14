@@ -67,6 +67,7 @@ type ListColumn struct {
 	// Display settings
 	showWatchStatus   bool // Whether to show watch status indicators
 	showLibraryCounts bool // Whether to keep library item counts visible after sync
+	hideWatched       bool // Whether to hide watched items from the list
 
 	// Content identity for race condition prevention
 	contentID string
@@ -399,6 +400,12 @@ func (c *ListColumn) SetShowLibraryCounts(show bool) {
 	c.showLibraryCounts = show
 }
 
+// SetHideWatched sets whether to hide watched items from the list
+func (c *ListColumn) SetHideWatched(hide bool) {
+	c.hideWatched = hide
+	c.applyFilter()
+}
+
 // SetContentID sets the content identity for race condition prevention
 func (c *ListColumn) SetContentID(id string) {
 	c.contentID = id
@@ -680,28 +687,63 @@ func (c *ListColumn) applyFilter() {
 	query := c.filterInput.Value()
 	c.filterQuery = query
 
+	// 1. Initial set: everything that isn't hidden by "hide watched"
+	count := c.sortedCount()
+	var baseIndices []int
+	for i := 0; i < count; i++ {
+		rawIdx := i
+		if c.sortedIdx != nil {
+			rawIdx = c.sortedIdx[i]
+		}
+
+		if c.hideWatched {
+			item := c.items[rawIdx]
+			// Only hide if it's explicitly a media item/show/season that is fully watched
+			if mi, ok := item.(*domain.MediaItem); ok && mi.IsPlayed {
+				continue
+			}
+			if s, ok := item.(*domain.Show); ok && s.UnwatchedCount == 0 && s.EpisodeCount > 0 {
+				continue
+			}
+			if sn, ok := item.(*domain.Season); ok && sn.UnwatchedCount == 0 && sn.EpisodeCount > 0 {
+				continue
+			}
+		}
+		baseIndices = append(baseIndices, i)
+	}
+
+	// 2. If no text query, we're done
 	if query == "" {
-		c.filteredIdx = nil
+		if len(baseIndices) == count {
+			c.filteredIdx = nil
+		} else {
+			c.filteredIdx = baseIndices
+		}
 		return
 	}
 
-	// Get filter values from items
-	titles := c.getFilterValues()
-	lowerTitles := make([]string, len(titles))
-	for i, t := range titles {
-		lowerTitles[i] = strings.ToLower(t)
+	// 3. Text search filter (fuzzy) on the base set
+	var titles []string
+	for _, idx := range baseIndices {
+		rawIdx := idx
+		if c.sortedIdx != nil {
+			rawIdx = c.sortedIdx[idx]
+		}
+		titles = append(titles, strings.ToLower(c.items[rawIdx].GetTitle()))
 	}
 
-	matches := fuzzy.Find(strings.ToLower(query), lowerTitles)
+	matches := fuzzy.Find(strings.ToLower(query), titles)
 
 	c.filteredIdx = make([]int, len(matches))
 	for i, match := range matches {
-		c.filteredIdx[i] = match.Index
+		c.filteredIdx[i] = baseIndices[match.Index]
 	}
 
-	// Reset cursor to first match
-	c.cursor = 0
-	c.offset = 0
+	// Reset cursor to first match if we're not already there
+	if c.cursor >= len(c.filteredIdx) {
+		c.cursor = 0
+		c.offset = 0
+	}
 }
 
 func (c *ListColumn) getFilterValues() []string {

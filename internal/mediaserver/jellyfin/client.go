@@ -752,9 +752,42 @@ func (c *Client) DeletePlaylist(ctx context.Context, playlistID string) error {
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("failed to delete playlist: status %d", resp.StatusCode)
 	}
 
 	return nil
+}
+
+// GetContinueWatching returns items that are currently in progress
+func (c *Client) GetContinueWatching(ctx context.Context) ([]*domain.MediaItem, error) {
+	query := url.Values{}
+	query.Set("Fields", "Overview,MediaSources,MediaStreams,DateCreated")
+	query.Set("Limit", "20")
+	query.Set("Recursive", "true")
+
+	path := fmt.Sprintf("/Users/%s/Items/Resume", c.userID)
+	body, err := c.doRequest(ctx, http.MethodGet, path, query)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp ItemsResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	// items could be movies or episodes
+	items := make([]*domain.MediaItem, 0, len(resp.Items))
+	for _, item := range resp.Items {
+		switch item.Type {
+		case "Movie":
+			movie := mapMovie(item, c.baseURL)
+			items = append(items, &movie)
+		case "Episode":
+			episode := mapEpisode(item, c.baseURL)
+			items = append(items, &episode)
+		}
+	}
+	return items, nil
 }

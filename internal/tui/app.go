@@ -586,6 +586,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.updateInspector()
 		return m, nil
 
+	case ContinueWatchingLoadedMsg:
+		m.Loading = false
+		if top := m.ColumnStack.Top(); top != nil && top.ContentID() == continueLibraryID {
+			top.SetItems(msg.Items)
+		}
+		m.updateInspector()
+		return m, nil
+
 	case PlaylistModalDataMsg:
 		m.PlaylistModal.Show(msg.Playlists, msg.Membership, msg.Item)
 		m.PlaylistModal.SetSize(m.Width, m.Height)

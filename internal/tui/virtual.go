@@ -36,16 +36,21 @@ func (m Model) profileEntries() []domain.Library {
 func (m Model) configEntries() []domain.Library {
 	showWatch := "off"
 	showCounts := "off"
+	hideWatched := "off"
 	if m.UIConfig.ShowWatchStatus {
 		showWatch = "on"
 	}
 	if m.UIConfig.ShowLibraryCounts {
 		showCounts = "on"
 	}
+	if m.UIConfig.HideWatched {
+		hideWatched = "on"
+	}
 	return []domain.Library{
 		{ID: "__config_player__", Name: "Player: " + m.playerName(), Type: "config"},
 		{ID: "__config_watch__", Name: "Watch indicators: " + showWatch, Type: "config"},
 		{ID: "__config_counts__", Name: "Library counts: " + showCounts, Type: "config"},
+		{ID: "__config_hide_watched__", Name: "Hide watched: " + hideWatched, Type: "config"},
 		{ID: "__config_os__", Name: "Platform: " + runtime.GOOS, Type: "config"},
 	}
 }
