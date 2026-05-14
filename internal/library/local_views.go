@@ -23,13 +23,46 @@ func (s *Service) ContinueWatching(limit int) []*domain.MediaItem {
 	return limitMediaItems(filtered, limit)
 }
 
-// RecentlyAdded returns cached playable items ordered by AddedAt descending.
-func (s *Service) RecentlyAdded(limit int) []*domain.MediaItem {
-	items := s.cachedPlayableItems()
-	sort.SliceStable(items, func(i, j int) bool {
-		return items[i].AddedAt > items[j].AddedAt
+// RecentlyAdded returns cached items (movies and shows) ordered by AddedAt descending.
+func (s *Service) RecentlyAdded(limit int) []domain.ListItem {
+	libs, ok := s.store.GetLibraries()
+	if !ok {
+		return nil
+	}
+
+	var all []domain.ListItem
+	for _, lib := range libs {
+		switch lib.Type {
+		case "movie":
+			if movies, ok := s.store.GetMovies(lib.ID); ok {
+				for _, m := range movies {
+					all = append(all, m)
+				}
+			}
+		case "show":
+			if shows, ok := s.store.GetShows(lib.ID); ok {
+				for _, sh := range shows {
+					all = append(all, sh)
+				}
+			}
+		case "mixed":
+			if items, ok := s.store.GetMixedContent(lib.ID); ok {
+				all = append(all, items...)
+			}
+		}
+	}
+
+	sort.SliceStable(all, func(i, j int) bool {
+		return all[i].GetAddedAt() > all[j].GetAddedAt()
 	})
-	return limitMediaItems(items, limit)
+
+	if limit <= 0 {
+		limit = defaultLocalViewLimit
+	}
+	if len(all) <= limit {
+		return all
+	}
+	return all[:limit]
 }
 
 // SmartFiltered returns cached playable items matching a named local filter.
