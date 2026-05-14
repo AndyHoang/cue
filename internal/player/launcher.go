@@ -238,6 +238,11 @@ func (l *Launcher) launchConfigured(offsetSecs int, playlistStart int, media ...
 		}
 	}
 
+	// For mpv, we can also pass the playlist start index
+	if l.command == "mpv" && playlistStart > 0 {
+		args = append(args, fmt.Sprintf("--playlist-start=%d", playlistStart))
+	}
+
 	for _, m := range media {
 		args = append(args, m.URL)
 	}

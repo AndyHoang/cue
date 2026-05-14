@@ -66,7 +66,7 @@ func DefaultConfig() *Config {
 			ShowWatchStatus:   true,
 			ShowLibraryCounts: false,
 			HideWatched:       false,
-			Autoplay:          false,
+			Autoplay:          true,
 		},
 		Logging: LoggingConfig{
 			File:  defaultLogPath(),
