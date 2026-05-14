@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/SuperCoolPencil/cue/internal/config"
 	"github.com/SuperCoolPencil/cue/internal/domain"
 	"github.com/SuperCoolPencil/cue/internal/tui/components"
 	tea "github.com/charmbracelet/bubbletea"
@@ -44,5 +45,34 @@ func TestResumeConfirmationCancel(t *testing.T) {
 	}
 	if got.pendingPlayback != nil {
 		t.Fatalf("pending playback should be cleared")
+	}
+}
+
+func TestNextEpisodeKeybinding(t *testing.T) {
+	col := components.NewListColumn(components.ColumnTypeEpisodes, "Episodes")
+	col.SetItems([]*domain.MediaItem{
+		{ID: "ep1", Title: "Ep 1", Type: domain.MediaTypeEpisode, IsPlayed: true},
+		{ID: "ep2", Title: "Ep 2", Type: domain.MediaTypeEpisode, IsPlayed: false},
+		{ID: "ep3", Title: "Ep 3", Type: domain.MediaTypeEpisode, IsPlayed: false},
+	})
+	col.SetFocused(true)
+
+	model := Model{
+		State:       StateBrowsing,
+		ColumnStack: NewColumnStack(),
+		UIConfig:    config.UIConfig{Autoplay: true},
+	}
+	model.ColumnStack.Push(col, 0)
+
+	// Cursor starts on ep1 (watched). Pressing N should go to ep2.
+	updated, _ := model.handleKeyMsg(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("N")})
+	got := updated.(Model)
+
+	top := got.ColumnStack.Top()
+	if top.SelectedIndex() != 1 {
+		t.Fatalf("selected index after N = %d, want 1 (Ep 2)", top.SelectedIndex())
+	}
+	if item := top.SelectedMediaItem(); item == nil || item.ID != "ep2" {
+		t.Fatalf("selected item = %#v, want ep2", item)
 	}
 }

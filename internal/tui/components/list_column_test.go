@@ -77,3 +77,37 @@ func TestListColumnHideWatched(t *testing.T) {
 		t.Fatalf("count after show watched = %d", col.ItemCount())
 	}
 }
+
+func TestGetSeasonPlaylist(t *testing.T) {
+	col := NewListColumn(ColumnTypeEpisodes, "Episodes")
+	episodes := []*domain.MediaItem{
+		{ID: "ep1", Title: "Ep 1", Type: domain.MediaTypeEpisode, IsPlayed: true},
+		{ID: "ep2", Title: "Ep 2", Type: domain.MediaTypeEpisode, IsPlayed: false},
+		{ID: "ep3", Title: "Ep 3", Type: domain.MediaTypeEpisode, IsPlayed: false},
+	}
+	col.SetItems(episodes)
+
+	// Hide watched (Ep 1)
+	col.SetHideWatched(true)
+
+	// Select Ep 2 - should be at cursor 0 now
+	if !col.SetSelectedByID("ep2") {
+		t.Fatal("failed to select ep2 after hide watched")
+	}
+
+	if col.ItemCount() != 2 {
+		t.Fatalf("visible count = %d, expected 2", col.ItemCount())
+	}
+
+	// Get playlist - should include ALL 3 episodes
+	playlist, idx := col.GetSeasonPlaylist()
+	if len(playlist) != 3 {
+		t.Fatalf("playlist length = %d, expected 3", len(playlist))
+	}
+	if idx != 1 {
+		t.Fatalf("selected index = %d, expected 1 (Ep 2), got %d", idx, idx)
+	}
+	if playlist[0].ID != "ep1" {
+		t.Errorf("expected ep1 at index 0, got %s", playlist[0].ID)
+	}
+}
