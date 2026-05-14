@@ -33,6 +33,7 @@ func TestMapJellyfinMovieAndMixedContent(t *testing.T) {
 			CommunityRating: 8.1,
 			OfficialRating:  "Not Rated",
 			DateCreated:     "2026-01-02T03:04:05Z",
+			PremiereDate:    "2023-10-25T00:00:00Z",
 			UserData:        &UserData{PlaybackPositionTicks: int64(30 * time.Second / 100)},
 			ImageTags:       ImageTags{Primary: "tag"},
 			Container:       "mkv,mp4",
@@ -58,7 +59,7 @@ func TestMapJellyfinMovieAndMixedContent(t *testing.T) {
 	if movie.ContentRating != "NR" || movie.VideoCodec != "HEVC" || movie.AudioCodec != "EAC3" || movie.Bitrate != 8000 {
 		t.Fatalf("movie normalization = %#v", movie)
 	}
-	if movie.ThumbURL != "http://server/Items/m1/Images/Primary?tag=tag" || movie.FileSize != 42 {
+	if movie.ThumbURL != "http://server/Items/m1/Images/Primary?tag=tag" || movie.FileSize != 42 || movie.AirDate != "2023-10-25" {
 		t.Fatalf("movie media fields = %#v", movie)
 	}
 
@@ -132,5 +133,24 @@ func TestJellyfinExtractMetadataBestVersion(t *testing.T) {
 	width, height := extractResolution(item)
 	if width != 3840 || height != 2160 {
 		t.Errorf("extractResolution() = %d, %d; want 3840, 2160", width, height)
+	}
+}
+
+func TestFormatJellyfinDate(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"2023-10-25T00:00:00Z", "2023-10-25"},
+		{"2023-10-25T15:30:00Z", "2023-10-25"},
+		{"2023-10-25", "2023-10-25"},
+		{"invalid", "invalid"},
+		{"", ""},
+	}
+
+	for _, tt := range tests {
+		if got := formatJellyfinDate(tt.input); got != tt.expected {
+			t.Errorf("formatJellyfinDate(%q) = %q; want %q", tt.input, got, tt.expected)
+		}
 	}
 }

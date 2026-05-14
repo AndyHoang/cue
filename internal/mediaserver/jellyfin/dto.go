@@ -44,6 +44,7 @@ type Item struct {
 	CollectionType     string        `json:"CollectionType,omitempty"` // For libraries: "movies", "tvshows"
 	DateCreated        string        `json:"DateCreated,omitempty"`
 	DateLastMediaAdded string        `json:"DateLastMediaAdded,omitempty"` // When last episode was added to show
+	PremiereDate       string        `json:"PremiereDate,omitempty"`
 	ProductionYear     int           `json:"ProductionYear,omitempty"`
 	RunTimeTicks       int64         `json:"RunTimeTicks,omitempty"` // Duration in 100-nanosecond units
 	CommunityRating    float64       `json:"CommunityRating,omitempty"`

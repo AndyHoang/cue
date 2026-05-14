@@ -253,9 +253,11 @@ func renderMediaHeader(item domain.MediaItem, width int) string {
 		b.WriteString("\n")
 	}
 
-	// Meta line: Year • Duration • Content Rating
+	// Meta line: Date/Year • Duration • Content Rating
 	var metaParts []string
-	if item.Year > 0 {
+	if item.AirDate != "" {
+		metaParts = append(metaParts, item.AirDate)
+	} else if item.Year > 0 {
 		metaParts = append(metaParts, fmt.Sprintf("%d", item.Year))
 	}
 	metaParts = append(metaParts, item.FormattedDuration())

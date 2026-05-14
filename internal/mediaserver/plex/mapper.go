@@ -54,6 +54,7 @@ func mapMovie(m Metadata, serverURL string) domain.MediaItem {
 		ViewOffset: time.Duration(m.ViewOffset) * time.Millisecond,
 		IsPlayed:   m.ViewCount > 0,
 		Type:       domain.MediaTypeMovie,
+		AirDate:    m.OriginallyAvailableAt,
 	}
 
 	if item.SortTitle == "" {
@@ -207,6 +208,7 @@ func mapEpisode(m Metadata, serverURL string) domain.MediaItem {
 		SeasonNum:  m.ParentIndex,
 		EpisodeNum: m.Index,
 		ParentID:   m.ParentRatingKey,
+		AirDate:    m.OriginallyAvailableAt,
 	}
 
 	if item.SortTitle == "" {

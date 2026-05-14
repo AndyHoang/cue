@@ -24,15 +24,16 @@ func TestMapPlexLibrariesFiltersSupportedTypes(t *testing.T) {
 func TestMapPlexMovieEpisodeAndMixedContent(t *testing.T) {
 	metadata := []Metadata{
 		{
-			RatingKey:        "m1",
-			Type:             "movie",
-			Title:            "Movie",
-			LibrarySectionID: 7,
-			Duration:         60000,
-			ViewOffset:       1000,
-			ContentRating:    "Unrated",
-			AudienceRating:   8.4,
-			Thumb:            "/thumb",
+			RatingKey:             "m1",
+			Type:                  "movie",
+			Title:                 "Movie",
+			LibrarySectionID:      7,
+			Duration:              60000,
+			ViewOffset:            1000,
+			ContentRating:         "Unrated",
+			AudienceRating:        8.4,
+			Thumb:                 "/thumb",
+			OriginallyAvailableAt: "2023-10-25",
 			Media: []Media{{
 				Bitrate:       9000,
 				Width:         3840,
@@ -59,7 +60,7 @@ func TestMapPlexMovieEpisodeAndMixedContent(t *testing.T) {
 	if movie.ContentRating != "NR" || movie.VideoCodec != "H.264" || movie.AudioCodec != "DTS" || movie.Container != "mkv" {
 		t.Fatalf("movie normalization = %#v", movie)
 	}
-	if movie.ThumbURL != "http://server/thumb" || movie.FileSize != 123 {
+	if movie.ThumbURL != "http://server/thumb" || movie.FileSize != 123 || movie.AirDate != "2023-10-25" {
 		t.Fatalf("movie media fields = %#v", movie)
 	}
 
@@ -77,16 +78,17 @@ func TestMapPlexMovieEpisodeAndMixedContent(t *testing.T) {
 
 func TestMapPlexEpisodeAndPlaylist(t *testing.T) {
 	episode := MapEpisodes([]Metadata{{
-		RatingKey:            "e1",
-		Type:                 "episode",
-		Title:                "Episode",
-		GrandparentTitle:     "Show",
-		GrandparentRatingKey: "show",
-		ParentRatingKey:      "season",
-		ParentIndex:          2,
-		Index:                3,
+		RatingKey:             "e1",
+		Type:                  "episode",
+		Title:                 "Episode",
+		GrandparentTitle:      "Show",
+		GrandparentRatingKey:  "show",
+		ParentRatingKey:       "season",
+		ParentIndex:           2,
+		Index:                 3,
+		OriginallyAvailableAt: "2023-11-01",
 	}}, "")[0]
-	if episode.Type != domain.MediaTypeEpisode || episode.EpisodeCode() != "S02E03" || episode.ParentID != "season" {
+	if episode.Type != domain.MediaTypeEpisode || episode.EpisodeCode() != "S02E03" || episode.ParentID != "season" || episode.AirDate != "2023-11-01" {
 		t.Fatalf("episode = %#v", episode)
 	}
 

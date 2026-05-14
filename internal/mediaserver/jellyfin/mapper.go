@@ -77,6 +77,7 @@ func mapMovie(item Item, serverURL string) domain.MediaItem {
 		Year:      item.ProductionYear,
 		Duration:  ticksToDuration(item.RunTimeTicks),
 		Type:      domain.MediaTypeMovie,
+		AirDate:   formatJellyfinDate(item.PremiereDate),
 	}
 
 	if mi.SortTitle == "" {
@@ -247,6 +248,7 @@ func mapEpisode(item Item, serverURL string) domain.MediaItem {
 		SeasonNum:  item.ParentIndexNumber,
 		EpisodeNum: item.IndexNumber,
 		ParentID:   item.SeasonID,
+		AirDate:    formatJellyfinDate(item.PremiereDate),
 	}
 
 	if mi.SortTitle == "" {
@@ -475,6 +477,17 @@ func extractResolution(item Item) (int, int) {
 		}
 	}
 	return maxWidth, maxHeight
+}
+
+// formatJellyfinDate normalizes Jellyfin's ISO8601 date to YYYY-MM-DD
+func formatJellyfinDate(dateStr string) string {
+	if dateStr == "" {
+		return ""
+	}
+	if t, err := time.Parse(time.RFC3339, dateStr); err == nil {
+		return t.Format("2006-01-02")
+	}
+	return dateStr
 }
 
 // MapPlaylists converts Jellyfin items to domain playlists

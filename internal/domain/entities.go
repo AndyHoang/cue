@@ -44,6 +44,7 @@ type MediaItem struct {
 	ContentRating string
 
 	// Technical metadata
+	AirDate       string // Full release/air date (e.g. "2023-10-25")
 	FileSize      int64  // File size in bytes
 	Bitrate       int    // Bitrate in kbps
 	Width         int    // Video width in pixels
