@@ -74,6 +74,9 @@ type ListColumn struct {
 
 	// Season groups for ColumnTypeSeasonEpisodes
 	seasonGroups []SeasonGroup
+
+	// Inspector for split view (persistent scroll state)
+	inspector Inspector
 }
 
 // NewListColumn creates a new list column with the given type and title
@@ -91,6 +94,7 @@ func NewListColumn(colType ColumnType, title string) *ListColumn {
 		sortDir:       SortAsc,
 		filterInput:   ti,
 		libraryStates: make(map[string]LibrarySyncState),
+		inspector:     NewInspector(),
 	}
 }
 
@@ -207,7 +211,7 @@ func (c *ListColumn) Update(msg tea.Msg) (*ListColumn, tea.Cmd) {
 
 func (c *ListColumn) View() string {
 	style := styles.InactiveBorder
-	if c.focused {
+	if c.focused && !c.inspector.Focused {
 		style = styles.ActiveBorder
 	}
 
@@ -243,6 +247,14 @@ func (c *ListColumn) SetFocused(focused bool) {
 
 func (c *ListColumn) IsFocused() bool {
 	return c.focused
+}
+
+func (c *ListColumn) Inspector() *Inspector {
+	return &c.inspector
+}
+
+func (c *ListColumn) SetInspectorFocused(focused bool) {
+	c.inspector.Focused = focused
 }
 
 func (c *ListColumn) Title() string {

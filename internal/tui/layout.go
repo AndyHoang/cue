@@ -96,7 +96,7 @@ func (m *Model) updateLayout() {
 			m.ColumnStack.Get(topIdx-2).SetSize(layout.grandparentWidth, contentHeight)
 		}
 
-		parentCol := m.ColumnStack.Get(topIdx-1)
+		parentCol := m.ColumnStack.Get(topIdx - 1)
 		activeCol := m.ColumnStack.Get(topIdx)
 
 		// Parent column split vs full depends on View() logic

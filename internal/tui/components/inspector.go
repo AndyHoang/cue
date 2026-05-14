@@ -31,6 +31,7 @@ type Inspector struct {
 	offset        int // scroll offset
 	maxVisible    int // max visible lines
 	libraryStates map[string]LibrarySyncState
+	Focused       bool
 }
 
 // NewInspector creates a new inspector component
@@ -42,6 +43,9 @@ func NewInspector() Inspector {
 
 // SetItem sets the item to display
 func (i *Inspector) SetItem(item interface{}) {
+	if i.item == item {
+		return
+	}
 	i.item = item
 	i.offset = 0 // Reset scroll on item change
 }
@@ -67,14 +71,42 @@ func (i Inspector) HasItem() bool {
 	return i.item != nil
 }
 
-// Update handles messages (currently no-op, inspector is not focusable)
-func (i Inspector) Update(_ tea.Msg) (Inspector, tea.Cmd) {
+// Update handles scrolling when focused
+func (i Inspector) Update(msg tea.Msg) (Inspector, tea.Cmd) {
+	if !i.Focused {
+		return i, nil
+	}
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "up", "k":
+			if i.offset > 0 {
+				i.offset--
+			}
+		case "down", "j":
+			i.offset++
+			// Clamp in View()
+		case "pgup":
+			i.offset -= i.maxVisible / 2
+			if i.offset < 0 {
+				i.offset = 0
+			}
+		case "pgdown":
+			i.offset += i.maxVisible / 2
+		case "home", "g":
+			i.offset = 0
+		}
+	}
 	return i, nil
 }
 
 // View renders the component
 func (i Inspector) View() string {
 	style := styles.InactiveBorder
+	if i.Focused {
+		style = styles.ActiveBorder
+	}
 
 	// Border takes 2 chars (1 each side), leave 1 char safety margin
 	contentWidth := i.width - 3

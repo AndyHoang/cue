@@ -61,6 +61,27 @@ func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.State = StateBrowsing
 		}
 		return m, nil
+
+	case StateInspecting:
+		if key.Matches(msg, Keys.Back, Keys.Escape) {
+			m.State = StateBrowsing
+			m.Inspector.Focused = false
+			if top := m.ColumnStack.Top(); top != nil {
+				top.SetInspectorFocused(false)
+			}
+			return m, nil
+		}
+		if key.Matches(msg, Keys.ToggleInspector) {
+			return m.handleToggleInspector()
+		}
+		var cmd tea.Cmd
+		if m.ColumnStack.Len() == 1 {
+			m.Inspector, cmd = m.Inspector.Update(msg)
+		} else if top := m.ColumnStack.Top(); top != nil {
+			insp := top.Inspector()
+			*insp, cmd = insp.Update(msg)
+		}
+		return m, cmd
 	}
 
 	// Route to active modal if any
@@ -453,10 +474,34 @@ func (m Model) playOrConfirmResume(item *domain.MediaItem, playlist []domain.Med
 	return m, PlayItemCmd(m.PlaybackSvc, *item, false, m.UIConfig.Autoplay, startIdx, playlist...)
 }
 
-// handleToggleInspector toggles the inspector panel visibility
+// handleToggleInspector toggles the inspector panel visibility or focuses it
 func (m Model) handleToggleInspector() (tea.Model, tea.Cmd) {
-	m.ShowInspector = !m.ShowInspector
-	m.updateLayout()
+	// If already in inspecting state, hide the inspector and go back to browsing
+	if m.State == StateInspecting {
+		m.ShowInspector = false
+		m.State = StateBrowsing
+		m.Inspector.Focused = false
+		if top := m.ColumnStack.Top(); top != nil {
+			top.SetInspectorFocused(false)
+		}
+		m.updateLayout()
+		return m, nil
+	}
+
+	// Otherwise, show and focus it
+	if !m.ShowInspector {
+		m.ShowInspector = true
+		m.updateLayout()
+	}
+
+	m.State = StateInspecting
+
+	if m.ColumnStack.Len() == 1 {
+		m.Inspector.Focused = true
+	} else if top := m.ColumnStack.Top(); top != nil {
+		top.SetInspectorFocused(true)
+	}
+
 	return m, nil
 }
 

@@ -147,7 +147,7 @@ func PlayItemCmd(svc *player.Service, item domain.MediaItem, resume bool, autopl
 		// This command handles two collapsed concerns:
 		// 1. Single-item playback (if autoplay is off) vs full-season playlist.
 		// 2. Play from beginning (Play) vs resume from saved offset (Resume).
-		// The logic below ensures that if autoplay is disabled, we always launch a 
+		// The logic below ensures that if autoplay is disabled, we always launch a
 		// single-item playlist, regardless of whether it's a fresh play or a resume.
 		actualPlaylist := playlist
 		actualStartIdx := playlistStart

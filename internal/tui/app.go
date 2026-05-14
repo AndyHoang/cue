@@ -23,6 +23,7 @@ const (
 	StateHelp
 	StateConfirmLogout
 	StateConfirmResume
+	StateInspecting
 )
 
 // Layout proportions for Miller Columns

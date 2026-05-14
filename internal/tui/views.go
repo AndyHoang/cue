@@ -68,6 +68,7 @@ func (m Model) View() string {
 		case 1:
 			// Root: library list
 			libCol := m.ColumnStack.Get(0)
+			libCol.SetFocused(m.State != StateInspecting)
 			libCol.SetSize(layout.activeWidth, contentHeight)
 			columnViews = append(columnViews, libCol.View())
 
@@ -177,8 +178,8 @@ func (m Model) renderSplitColumn(col *components.ListColumn, colWidth, listHeigh
 	col.SetSize(colWidth, listHeight)
 	listView := col.View()
 
-	// Info pane: fresh inspector for this column's selected item
-	insp := components.NewInspector()
+	// Info pane: persistent inspector for this column's selected item
+	insp := col.Inspector()
 	insp.SetSize(colWidth, infoHeight)
 
 	selected := col.SelectedItem()
