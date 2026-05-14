@@ -1,6 +1,6 @@
 # Cue
 
-![Cue Media Player](assets/screenshot1.png)
+<img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/254c2188-9cd5-4358-ba62-38999b52bcf5" />
 
 > A fast terminal client for browsing and playing media from Plex and Jellyfin servers
 
