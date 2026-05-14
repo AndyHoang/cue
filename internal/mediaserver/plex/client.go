@@ -116,7 +116,7 @@ func (c *Client) doRequest(ctx context.Context, method, path string, query url.V
 		return nil, domain.ErrAuthFailed
 	}
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		c.logger.Error("plex request error", "status", resp.StatusCode, "body", string(body))
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
@@ -410,6 +410,7 @@ func (c *Client) GetMediaItem(ctx context.Context, itemID string) (*domain.Media
 func (c *Client) MarkPlayed(ctx context.Context, itemID string) error {
 	query := url.Values{}
 	query.Set("key", itemID)
+	query.Set("identifier", "com.plexapp.plugins.library")
 
 	_, err := c.doRequest(ctx, http.MethodGet, "/:/scrobble", query)
 	return err
@@ -419,6 +420,7 @@ func (c *Client) MarkPlayed(ctx context.Context, itemID string) error {
 func (c *Client) MarkUnplayed(ctx context.Context, itemID string) error {
 	query := url.Values{}
 	query.Set("key", itemID)
+	query.Set("identifier", "com.plexapp.plugins.library")
 
 	_, err := c.doRequest(ctx, http.MethodGet, "/:/unscrobble", query)
 	return err

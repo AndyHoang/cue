@@ -117,7 +117,7 @@ func (c *Client) doRequest(ctx context.Context, method, path string, query url.V
 			continue
 		}
 
-		if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			c.logger.Error("jellyfin request error", "status", resp.StatusCode, "body", string(body))
 			return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 		}
@@ -499,7 +499,7 @@ func (c *Client) MarkPlayed(ctx context.Context, itemID string) error {
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("failed to mark as played: status %d", resp.StatusCode)
 	}
 
@@ -523,7 +523,7 @@ func (c *Client) MarkUnplayed(ctx context.Context, itemID string) error {
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("failed to mark as unplayed: status %d", resp.StatusCode)
 	}
 
