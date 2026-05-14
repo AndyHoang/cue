@@ -683,7 +683,7 @@ func (c *ListColumn) recalcMaxVisible() {
 	// Interior height = total - border (top+bottom)
 	// Reserve space for: title line + scroll indicators (header + footer)
 	interiorHeight := c.height - BorderHeight
-	c.maxVisible = interiorHeight - ScrollIndicatorLines - 1 // -1 for title
+	c.maxVisible = interiorHeight - ScrollIndicatorLines - 1 - 1 // -1 for title, -1 for padding/safety
 	// Reserve space for filter bar when active
 	if c.filterActive {
 		c.maxVisible--

@@ -1,5 +1,7 @@
 package tui
 
+import "github.com/SuperCoolPencil/cue/internal/tui/components"
+
 // columnLayout holds calculated column widths for the View
 type columnLayout struct {
 	grandparentWidth int // 0 if not shown
@@ -65,7 +67,7 @@ func (m *Model) updateLayout() {
 	layout := m.calculateColumnLayout(m.Width)
 	topIdx := stackLen - 1
 
-	// Calculate list/info heights for split view
+	// Calculate list/info heights for split view: 33% list, 66% info
 	listHeight := contentHeight / 3
 	if listHeight < 4 {
 		listHeight = 4
@@ -81,19 +83,38 @@ func (m *Model) updateLayout() {
 
 	case 2:
 		m.ColumnStack.Get(0).SetSize(layout.parentWidth, contentHeight)
-		// Active column is split in View(), so updateLayout should use listHeight
-		m.ColumnStack.Get(1).SetSize(layout.activeWidth, listHeight)
+		contentCol := m.ColumnStack.Get(1)
+		h := listHeight
+		if contentCol.ColumnType() == components.ColumnTypeEpisodes || contentCol.ColumnType() == components.ColumnTypeSeasonEpisodes {
+			h = (55 * contentHeight) / 100
+		}
+		// Active column is split in View(), so updateLayout should use appropriate height
+		m.ColumnStack.Get(1).SetSize(layout.activeWidth, h)
 
 	default: // 3+ columns
 		if layout.grandparentWidth > 0 {
 			m.ColumnStack.Get(topIdx-2).SetSize(layout.grandparentWidth, contentHeight)
 		}
+
+		parentCol := m.ColumnStack.Get(topIdx-1)
+		activeCol := m.ColumnStack.Get(topIdx)
+
 		// Parent column split vs full depends on View() logic
+		ph := listHeight
+		if parentCol.ColumnType() == components.ColumnTypeEpisodes || parentCol.ColumnType() == components.ColumnTypeSeasonEpisodes {
+			ph = (55 * contentHeight) / 100
+		}
+
 		if layout.grandparentWidth > 0 {
 			m.ColumnStack.Get(topIdx-1).SetSize(layout.parentWidth, contentHeight)
 		} else {
-			m.ColumnStack.Get(topIdx-1).SetSize(layout.parentWidth, listHeight)
+			m.ColumnStack.Get(topIdx-1).SetSize(layout.parentWidth, ph)
 		}
-		m.ColumnStack.Get(topIdx).SetSize(layout.activeWidth, listHeight)
+
+		ah := listHeight
+		if activeCol.ColumnType() == components.ColumnTypeEpisodes || activeCol.ColumnType() == components.ColumnTypeSeasonEpisodes {
+			ah = (55 * contentHeight) / 100
+		}
+		m.ColumnStack.Get(topIdx).SetSize(layout.activeWidth, ah)
 	}
 }

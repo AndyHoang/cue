@@ -48,12 +48,19 @@ func (m Model) View() string {
 		// Only split vertically if we have enough height
 		canSplit := contentHeight >= 15
 
-		// List-height for content columns: 33% of available height
+		// Default list height: 33% of available height
 		listHeight := contentHeight / 3
 		if listHeight < 4 {
 			listHeight = 4
 		}
 		infoHeight := contentHeight - listHeight
+
+		// Tall list height (for episodes): 55% of available height
+		tallListHeight := (55 * contentHeight) / 100
+		if tallListHeight < 4 {
+			tallListHeight = 4
+		}
+		tallInfoHeight := contentHeight - tallListHeight
 
 		var columnViews []string
 
@@ -108,7 +115,12 @@ func (m Model) View() string {
 
 			activeCol := m.ColumnStack.Get(topIdx)
 			if canSplit {
-				columnViews = append(columnViews, m.renderSplitColumn(activeCol, layout.activeWidth, listHeight, infoHeight))
+				h, ih := listHeight, infoHeight
+				// Episodes get more list space
+				if activeCol.ColumnType() == components.ColumnTypeEpisodes || activeCol.ColumnType() == components.ColumnTypeSeasonEpisodes {
+					h, ih = tallListHeight, tallInfoHeight
+				}
+				columnViews = append(columnViews, m.renderSplitColumn(activeCol, layout.activeWidth, h, ih))
 			} else {
 				activeCol.SetSize(layout.activeWidth, contentHeight)
 				columnViews = append(columnViews, activeCol.View())
@@ -159,7 +171,7 @@ func (m Model) View() string {
 	return view
 }
 
-// renderSplitColumn renders a content column as a 33/66 vertical split:
+// renderSplitColumn renders a content column as a vertical split:
 // top = list (listHeight), bottom = info pane for selected item (infoHeight).
 func (m Model) renderSplitColumn(col *components.ListColumn, colWidth, listHeight, infoHeight int) string {
 	col.SetSize(colWidth, listHeight)
