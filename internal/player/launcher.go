@@ -276,10 +276,10 @@ func (l *Launcher) launchConfigured(offsetSecs int, playlistStart int, media ...
 					formattedFlag := fmt.Sprintf(seekFlag, offsetSecs)
 					args = append(args, strings.Fields(formattedFlag)...)
 				} else if l.command != "mpv" { // If they specified a custom seek flag or it's standard mpv
-                    // This warning only fires if they have an unknown binary called mpv
-                    l.logger.Warn("cannot set start offset - configure start_flag in config",
-                        "command", l.command, "offset", offsetSecs)
-                }
+					// This warning only fires if they have an unknown binary called mpv
+					l.logger.Warn("cannot set start offset - configure start_flag in config",
+						"command", l.command, "offset", offsetSecs)
+				}
 			}
 			args = append(args, m.URL)
 			args = append(args, "--}")

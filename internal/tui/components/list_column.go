@@ -608,13 +608,27 @@ func (c *ListColumn) AddSeasonEpisodes(seasonID string, eps []*domain.MediaItem)
 	c.rebuildSeasonItems()
 }
 
-// ExpandFirstSeason expands the first season group.
+// ExpandFirstSeason expands the first not completely watched season group.
 // Returns (needsLoad, seasonID) — caller issues LoadEpisodesCmd when needsLoad is true.
 func (c *ListColumn) ExpandFirstSeason() (needsLoad bool, seasonID string) {
 	if len(c.seasonGroups) == 0 {
 		return false, ""
 	}
-	g := &c.seasonGroups[0]
+
+	targetIdx := -1
+	for i, g := range c.seasonGroups {
+		if g.Header.Season.UnwatchedCount > 0 {
+			targetIdx = i
+			break
+		}
+	}
+
+	if targetIdx == -1 {
+		c.rebuildSeasonItems()
+		return false, ""
+	}
+
+	g := &c.seasonGroups[targetIdx]
 	g.Header.Expanded = true
 	if !g.Loaded {
 		g.Header.Loading = true
