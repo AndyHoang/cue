@@ -397,7 +397,7 @@ func (c *ListColumn) SetItems(rawItems interface{}) {
 	if selectedID != "" {
 		rawIdx := -1
 		for i, item := range c.items {
-			if li, ok := item.(domain.ListItem); ok && li.GetID() == selectedID {
+			if item.GetID() == selectedID {
 				rawIdx = i
 				break
 			}

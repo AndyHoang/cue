@@ -66,7 +66,7 @@ func runCLI(args []string, stdout, stderr io.Writer) int {
 	}
 
 	if showVersion {
-		fmt.Fprintf(stdout, "cue %s\n", getVersion())
+		_, _ = fmt.Fprintf(stdout, "cue %s\n", getVersion())
 		return 0
 	}
 
@@ -76,40 +76,40 @@ func runCLI(args []string, stdout, stderr io.Writer) int {
 		switch remainingArgs[0] {
 		case "completion":
 			if len(remainingArgs) < 2 {
-				fmt.Fprintln(stderr, "Usage: cue completion [bash|zsh|fish|powershell]")
+				_, _ = fmt.Fprintln(stderr, "Usage: cue completion [bash|zsh|fish|powershell]")
 				return 1
 			}
 			shell := remainingArgs[1]
 			switch shell {
 			case "fish":
-				fmt.Fprint(stdout, fishCompletion)
+				_, _ = fmt.Fprint(stdout, fishCompletion)
 			case "bash":
-				fmt.Fprint(stdout, bashCompletion)
+				_, _ = fmt.Fprint(stdout, bashCompletion)
 			case "zsh":
-				fmt.Fprint(stdout, zshCompletion)
+				_, _ = fmt.Fprint(stdout, zshCompletion)
 			case "powershell":
-				fmt.Fprint(stdout, psCompletion)
+				_, _ = fmt.Fprint(stdout, psCompletion)
 			default:
-				fmt.Fprintf(stderr, "Unknown shell: %s\n", shell)
+				_, _ = fmt.Fprintf(stderr, "Unknown shell: %s\n", shell)
 				return 1
 			}
 			return 0
 		case "help":
 			fs.SetOutput(stdout)
 			fs.Usage()
-			fmt.Fprintln(stdout, "\nCommands:")
-			fmt.Fprintln(stdout, "  completion   Generate shell completion scripts")
-			fmt.Fprintln(stdout, "  help         Show this help")
+			_, _ = fmt.Fprintln(stdout, "\nCommands:")
+			_, _ = fmt.Fprintln(stdout, "  completion   Generate shell completion scripts")
+			_, _ = fmt.Fprintln(stdout, "  help         Show this help")
 			return 0
 		default:
-			fmt.Fprintf(stderr, "Error: unknown command %q\n", remainingArgs[0])
+			_, _ = fmt.Fprintf(stderr, "Error: unknown command %q\n", remainingArgs[0])
 			fs.Usage()
 			return 1
 		}
 	}
 
 	if err := run(); err != nil {
-		fmt.Fprintf(stderr, "Error: %v\n", err)
+		_, _ = fmt.Fprintf(stderr, "Error: %v\n", err)
 		return 1
 	}
 
