@@ -170,8 +170,10 @@ func (l *Launcher) execPlayer(player PlayerDef, offsetSecs int, playlistStart in
 	args := []string{}
 	var ipcSocket string
 
+	isMpv := player.Binary == "mpv"
+
 	// Enable IPC for mpv
-	if player.Binary == "mpv" {
+	if isMpv {
 		ipcSocket = newMPVSocketPath()
 		args = append(args, "--input-ipc-server="+ipcSocket)
 		if playlistStart > 0 {
@@ -180,23 +182,36 @@ func (l *Launcher) execPlayer(player PlayerDef, offsetSecs int, playlistStart in
 	}
 
 	// Add seek flag if we have an offset and the player supports it
-	if offsetSecs > 0 && player.SeekFlag != "" {
+	if offsetSecs > 0 && player.SeekFlag != "" && !isMpv {
 		formattedFlag := fmt.Sprintf(player.SeekFlag, offsetSecs)
 		// Split flags like "-ss 10" into separate args
 		args = append(args, strings.Fields(formattedFlag)...)
 	}
 
-	if len(media) > 0 {
-		if subArgs := subFileArgs(player.Binary, media[0].Subtitles); len(subArgs) > 0 {
+	if !isMpv && len(media) > playlistStart {
+		if subArgs := subFileArgs(player.Binary, media[playlistStart].Subtitles); len(subArgs) > 0 {
 			args = append(args, subArgs...)
-		} else if len(media[0].Subtitles) > 0 {
+		} else if len(media[playlistStart].Subtitles) > 0 {
 			l.logger.Warn("external subtitles not supported by player - skipping",
-				"binary", player.Binary, "count", len(media[0].Subtitles))
+				"binary", player.Binary, "count", len(media[playlistStart].Subtitles))
 		}
 	}
 
-	for _, m := range media {
-		args = append(args, m.URL)
+	for i, m := range media {
+		if isMpv {
+			args = append(args, "--{")
+			if subArgs := subFileArgs(player.Binary, m.Subtitles); len(subArgs) > 0 {
+				args = append(args, subArgs...)
+			}
+			if offsetSecs > 0 && i == playlistStart && player.SeekFlag != "" {
+				formattedFlag := fmt.Sprintf(player.SeekFlag, offsetSecs)
+				args = append(args, strings.Fields(formattedFlag)...)
+			}
+			args = append(args, m.URL)
+			args = append(args, "--}")
+		} else {
+			args = append(args, m.URL)
+		}
 	}
 
 	l.logger.Debug("executing player", "binary", player.Binary, "args", args)
@@ -212,8 +227,11 @@ func (l *Launcher) launchConfigured(offsetSecs int, playlistStart int, media ...
 
 	args := append([]string{}, l.args...)
 
+	bin := strings.ToLower(strings.TrimSuffix(filepath.Base(l.command), filepath.Ext(l.command)))
+	isMpv := bin == "mpv"
+
 	// Add seek offset: user-configured flag takes precedence, then table lookup
-	if offsetSecs > 0 {
+	if offsetSecs > 0 && !isMpv {
 		seekFlag := l.seekFlag
 		if seekFlag == "" {
 			// Fall back to table lookup for known players
@@ -229,22 +247,45 @@ func (l *Launcher) launchConfigured(offsetSecs int, playlistStart int, media ...
 		}
 	}
 
-	if len(media) > 0 {
-		if subArgs := subFileArgs(l.command, media[0].Subtitles); len(subArgs) > 0 {
+	if !isMpv && len(media) > playlistStart {
+		if subArgs := subFileArgs(l.command, media[playlistStart].Subtitles); len(subArgs) > 0 {
 			args = append(args, subArgs...)
-		} else if len(media[0].Subtitles) > 0 {
+		} else if len(media[playlistStart].Subtitles) > 0 {
 			l.logger.Warn("external subtitles not supported by configured player - skipping",
-				"command", l.command, "count", len(media[0].Subtitles))
+				"command", l.command, "count", len(media[playlistStart].Subtitles))
 		}
 	}
 
 	// For mpv, we can also pass the playlist start index
-	if l.command == "mpv" && playlistStart > 0 {
+	if isMpv && playlistStart > 0 {
 		args = append(args, fmt.Sprintf("--playlist-start=%d", playlistStart))
 	}
 
-	for _, m := range media {
-		args = append(args, m.URL)
+	for i, m := range media {
+		if isMpv {
+			args = append(args, "--{")
+			if subArgs := subFileArgs(l.command, m.Subtitles); len(subArgs) > 0 {
+				args = append(args, subArgs...)
+			}
+			if offsetSecs > 0 && i == playlistStart {
+				seekFlag := l.seekFlag
+				if seekFlag == "" {
+					seekFlag = l.lookupSeekFlag(l.command)
+				}
+				if seekFlag != "" {
+					formattedFlag := fmt.Sprintf(seekFlag, offsetSecs)
+					args = append(args, strings.Fields(formattedFlag)...)
+				} else if l.command != "mpv" { // If they specified a custom seek flag or it's standard mpv
+                    // This warning only fires if they have an unknown binary called mpv
+                    l.logger.Warn("cannot set start offset - configure start_flag in config",
+                        "command", l.command, "offset", offsetSecs)
+                }
+			}
+			args = append(args, m.URL)
+			args = append(args, "--}")
+		} else {
+			args = append(args, m.URL)
+		}
 	}
 
 	l.logger.Debug("launching configured player", "command", l.command, "args", args)
@@ -261,8 +302,7 @@ func (l *Launcher) launchConfigured(offsetSecs int, playlistStart int, media ...
 	// name (without extension) so Windows variants like "mpv.exe" and paths
 	// with backslashes (`C:\tools\mpv.exe`) are recognised too.
 	var ipcSocket string
-	bin := strings.ToLower(strings.TrimSuffix(filepath.Base(l.command), filepath.Ext(l.command)))
-	if bin == "mpv" {
+	if isMpv {
 		ipcSocket = newMPVSocketPath()
 		args = append([]string{"--input-ipc-server=" + ipcSocket}, args...)
 	}
